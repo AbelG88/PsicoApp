@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f4a63">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Consultorio">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Consultorio</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2933;--mut:#6b7785;--pri:#2f4a63;--pri2:#e4ebf2;--ok:#2e7d5b;--warn:#b7791f;--bad:#b83a3a;--line:#e5e1d8;--r:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#14181d;--card:#1d232a;--ink:#e8ecf0;--mut:#93a0ad;--pri:#7fa6cc;--pri2:#26323f;--ok:#58b88c;--warn:#e0a94b;--bad:#e27474;--line:#2b333c}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#app{max-width:640px;margin:0 auto;padding:12px 14px 92px}
+h1{font-size:1.25rem;margin:6px 0 12px}h2{font-size:1.05rem;margin:18px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:8px 0}
+.row{display:flex;align-items:center;gap:10px}.sp{justify-content:space-between}.grow{flex:1;min-width:0}
+.mut{color:var(--mut);font-size:.88rem}.big{font-size:1.35rem;font-weight:650}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+button,.btn{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--pri);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
+button.sec,.btn.sec{background:var(--pri2);color:var(--pri)}button.dng{background:transparent;color:var(--bad);padding:6px 8px}
+button.sm,.btn.sm{padding:6px 10px;font-size:.88rem}
+input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
+label{display:block;font-size:.85rem;color:var(--mut);margin:10px 0 4px}
+.chip{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
+.chip.asistio{background:#dff1e8;color:#1f6b4a}.chip.falto,.chip.cancelo_tarde{background:#f8e3e3;color:#9b2f2f}.chip.cancelo{background:#eee;color:#666}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:10px 2px;font-size:.78rem}
+nav button.on{color:var(--pri);font-weight:650}
+.fab{position:fixed;right:16px;bottom:78px;border-radius:99px;padding:14px 18px;box-shadow:0 4px 14px #0003}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 28px}
+.lock{max-width:340px;margin:18vh auto 0;text-align:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+.err{color:var(--bad);min-height:1.2em;font-size:.9rem}
+.tog{display:flex;gap:10px;align-items:center;margin:10px 0}.tog input{width:auto}
+@media print{nav,.fab,button{display:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ---------- utilidades ---------- */
+const LS='consultorio_v1';
+const enc=new TextEncoder(),dec=new TextDecoder();
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode(...u.subarray(i,i+8192));return btoa(s)};
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0}).format(n||0);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,'0');
+const dstr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const today=()=>dstr(new Date());
+const addDays=(s,n)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+n);return dstr(d)};
+const longDate=s=>new Date(s+'T12:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+const shortDate=s=>{const [y,m,d]=s.split('-');return `${d}/${m}`};
+const monthName=m=>new Date(m+'-15T12:00').toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+
+/* ---------- cifrado ---------- */
+async function deriveKey(pass,salt){
+  const k=await crypto.subtle.importKey('raw',enc.encode(pass),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:250000,hash:'SHA-256'},k,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function encryptObj(key,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(obj))));
+  return {iv:b64(iv),ct:b64(ct)};
+}
+async function decryptObj(key,{iv,ct}){
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(iv)},key,unb64(ct));
+  return JSON.parse(dec.decode(pt));
+}
+
+/* ---------- estado ---------- */
+let S=null,KEY=null,SALT=null;
+const blank=()=>({patients:[],sessions:[],payments:[],settings:{name:'',chargeLate:true,chargeAbsent:true}});
+let ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};
+const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
+
+async function save(){
+  const blob=await encryptObj(KEY,S);
+  localStorage.setItem(LS,JSON.stringify({v:1,salt:b64(SALT),...blob}));
+}
+async function unlock(pass){
+  const raw=localStorage.getItem(LS);
+  if(!raw){ // primera vez
+    SALT=crypto.getRandomValues(new Uint8Array(16));
+    KEY=await deriveKey(pass,SALT);S=blank();await save();return true;
+  }
+  const o=JSON.parse(raw);
+  const salt=unb64(o.salt);
+  const key=await deriveKey(pass,salt);
+  try{S=await decryptObj(key,o);}catch(e){return false;}
+  SALT=salt;KEY=key;
+  S.settings=Object.assign(blank().settings,S.settings||{});
+  return true;
+}
+
+/* ---------- lógica ---------- */
+const charged=s=>s.status==='asistio'||(s.status==='cancelo_tarde'&&S.settings.chargeLate)||(s.status==='falto'&&S.settings.chargeAbsent);
+const pat=id=>S.patients.find(p=>p.id===id);
+const billed=pid=>S.sessions.filter(s=>s.pid===pid&&charged(s)).reduce((a,s)=>a+(+s.fee||0),0);
+const paid=pid=>S.payments.filter(p=>p.pid===pid).reduce((a,p)=>a+(+p.amount||0),0);
+const balance=pid=>billed(pid)-paid(pid);
+const waPhone=t=>{let d=String(t||'').replace(/\D/g,'').replace(/^0+/,'');if(d.length===10)d='549'+d;return d};
+const waLink=(p,msg)=>`https://wa.me/${waPhone(p.phone)}?text=${encodeURIComponent(msg)}`;
+const first=p=>p.name.trim().split(/\s+/)[0];
+const sign=()=>S.settings.name?`\n${S.settings.name}`:'';
+
+/* ---------- vistas ---------- */
+function render(){
+  const app=document.getElementById('app');
+  if(ui.locked){app.innerHTML=lockView();return}
+  let body='';
+  if(ui.tab==='agenda')body=agendaView();
+  else if(ui.tab==='pac')body=ui.pid?patientView():patientsView();
+  else if(ui.tab==='cobros')body=cobrosView();
+  else if(ui.tab==='mes')body=mesView();
+  else body=ajustesView();
+  const tabs=[['agenda','Agenda'],['pac','Pacientes'],['cobros','Cobros'],['mes','Mes'],['aj','Ajustes']];
+  app.innerHTML=body+`<nav>${tabs.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</nav>`+(ui.modal?modalView():'');
+}
+function lockView(){
+  const first=!localStorage.getItem(LS);
+  return `<div class="lock"><h1>Consultorio</h1>
+  <p class="mut">${first?'Elegí una clave para proteger tus datos (mínimo 6 caracteres). Si la olvidás, no se pueden recuperar.':'Ingresá tu clave'}</p>
+  <form data-form="unlock"><input type="password" name="p" autocomplete="off" placeholder="Clave" required minlength="${first?6:1}" autofocus>
+  ${first?'<input type="password" name="p2" placeholder="Repetir clave" required style="margin-top:8px">':''}
+  <p class="err">${esc(ui.err)}</p><button style="width:100%">${first?'Crear y entrar':'Entrar'}</button></form></div>`;
+}
+function agendaView(){
+  const list=S.sessions.filter(s=>s.date===ui.date).sort((a,b)=>a.time.localeCompare(b.time));
+  const isToday=ui.date===today();
+  return `<h1>${esc(longDate(ui.date))}</h1>
+  <div class="row"><button class="sec sm" data-act="day" data-n="-1">‹</button>
+  <button class="sec sm" data-act="day" data-n="0">Hoy</button>
+  <button class="sec sm" data-act="day" data-n="1">›</button>
+  <input type="date" value="${ui.date}" data-chg="goto" style="width:auto;margin-left:auto"></div>
+  ${list.length?list.map(s=>{const p=pat(s.pid);if(!p)return'';
+   const msg=`Hola ${first(p)}, te recuerdo tu sesión del ${longDate(s.date)} a las ${s.time}. ¡Gracias!${sign()}`;
+   return `<div class="card"><div class="row sp"><div class="grow"><b>${esc(s.time)}</b> · ${esc(p.name)}<div class="mut">${money(s.fee)}</div></div>
+   <span class="chip ${s.status}">${STATUS[s.status]}</span></div>
+   <div class="row" style="margin-top:8px;flex-wrap:wrap">
+   <select data-chg="status" data-id="${s.id}" style="width:auto;flex:1">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${s.status===k?' selected':''}>${v}</option>`).join('')}</select>
+   ${p.phone?`<a class="btn sec sm" target="_blank" rel="noopener" href="${waLink(p,msg)}">WhatsApp</a>`:''}
+   <button class="dng sm" data-act="delses" data-id="${s.id}">Borrar</button></div></div>`}).join('')
+   :`<div class="card mut">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}
+  <button class="fab" data-act="newses">+ Turno</button>`;
+}
+function patientsView(){
+  const ps=[...S.patients].sort((a,b)=>a.name.localeCompare(b.name));
+  return `<h1>Pacientes</h1>${ps.length?ps.map(p=>{const b=balance(p.id);
+   return `<div class="card" data-act="openpat" data-id="${p.id}" style="cursor:pointer"><div class="row sp"><div class="grow"><b>${esc(p.name)}</b><div class="mut">${esc(p.os||'Particular')} · ${money(p.fee)}</div></div>
+   <div class="${b>0?'bad':'mut'}">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div></div></div>`}).join(''):'<div class="card mut">Todavía no cargaste pacientes.</div>'}
+  <button class="fab" data-act="newpat">+ Paciente</button>`;
+}
+function patientView(){
+  const p=pat(ui.pid);if(!p){ui.pid=null;return patientsView()}
+  const b=balance(p.id);
+  const ses=S.sessions.filter(s=>s.pid===p.id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,30);
+  const pays=S.payments.filter(x=>x.pid===p.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  const debtMsg=`Hola ${first(p)}, te paso lo pendiente a la fecha: ${money(b)}. Cuando puedas me avisás. ¡Gracias!${sign()}`;
+  return `<div class="row"><button class="sec sm" data-act="back">‹ Volver</button><h1 style="margin:0">${esc(p.name)}</h1></div>
+  <div class="card"><div class="mut">${esc(p.os||'Particular')} · ${money(p.fee)} por sesión${p.phone?' · '+esc(p.phone):''}</div>
+  ${p.notes?`<div style="margin-top:6px;white-space:pre-wrap">${esc(p.notes)}</div>`:''}
+  <div class="big ${b>0?'bad':'ok'}" style="margin-top:8px">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div>
+  <div class="row" style="margin-top:10px;flex-wrap:wrap">
+  <button data-act="newpay" data-id="${p.id}">Registrar cobro</button>
+  <button class="sec" data-act="newses" data-id="${p.id}">Turno</button>
+  ${b>0&&p.phone?`<a class="btn sec" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar deuda</a>`:''}
+  <button class="sec" data-act="editpat" data-id="${p.id}">Editar</button></div></div>
+  <h2>Sesiones</h2>${ses.length?ses.map(s=>`<div class="card row sp"><div>${shortDate(s.date)} ${esc(s.time)}<div class="mut">${money(s.fee)}</div></div><span class="chip ${s.status}">${STATUS[s.status]}</span></div>`).join(''):'<div class="mut">Sin sesiones.</div>'}
+  <h2>Cobros</h2>${pays.length?pays.map(x=>`<div class="card row sp"><div>${shortDate(x.date)} · ${esc(x.method||'')}<div class="mut">${esc(x.note||'')}</div></div><div class="row"><b class="ok">${money(x.amount)}</b><button class="dng sm" data-act="delpay" data-id="${x.id}">✕</button></div></div>`).join(''):'<div class="mut">Sin cobros.</div>'}
+  <div style="margin-top:20px"><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>`;
+}
+function cobrosView(){
+  const rows=S.patients.map(p=>({p,b:balance(p.id)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
+  const tot=rows.reduce((a,x)=>a+x.b,0);
+  return `<h1>Cobros y deudas</h1>
+  <div class="kpi"><div class="mut">Deuda total pendiente</div><div class="big ${tot>0?'bad':'ok'}">${money(tot)}</div></div>
+  ${rows.length?rows.map(({p,b})=>`<div class="card row sp"><div class="grow"><b>${esc(p.name)}</b><div class="bad">${money(b)}</div></div>
+  <button class="sm" data-act="newpay" data-id="${p.id}">Cobrar</button></div>`).join(''):'<div class="card mut">Nadie debe nada. 🎉</div>'}
+  <button class="fab" data-act="newpay">+ Cobro</button>`;
+}
+function mesView(){
+  const m=ui.month;
+  const ses=S.sessions.filter(s=>s.date.startsWith(m));
+  const cnt=k=>ses.filter(s=>s.status===k).length;
+  const fact=ses.filter(charged).reduce((a,s)=>a+(+s.fee||0),0);
+  const cob=S.payments.filter(x=>x.date.startsWith(m)).reduce((a,x)=>a+(+x.amount||0),0);
+  const prog=ses.filter(s=>s.status==='prog').reduce((a,s)=>a+(+s.fee||0),0);
+  const deuda=S.patients.reduce((a,p)=>a+Math.max(0,balance(p.id)),0);
+  const mv=n=>{const d=new Date(m+'-15T12:00');d.setMonth(d.getMonth()+n);return dstr(d).slice(0,7)};
+  return `<h1 style="text-transform:capitalize">${esc(monthName(m))}</h1>
+  <div class="row"><button class="sec sm" data-act="month" data-m="${mv(-1)}">‹</button><button class="sec sm" data-act="month" data-m="${today().slice(0,7)}">Este mes</button><button class="sec sm" data-act="month" data-m="${mv(1)}">›</button></div>
+  <div class="grid2" style="margin-top:10px">
+  <div class="kpi"><div class="mut">Cobrado</div><div class="big ok">${money(cob)}</div></div>
+  <div class="kpi"><div class="mut">Facturado (sesiones)</div><div class="big">${money(fact)}</div></div>
+  <div class="kpi"><div class="mut">Proyectado del mes</div><div class="big">${money(fact+prog)}</div></div>
+  <div class="kpi"><div class="mut">Deuda total hoy</div><div class="big bad">${money(deuda)}</div></div></div>
+  <div class="card"><div class="grid2"><div>Asistió: <b>${cnt('asistio')}</b></div><div>Programadas: <b>${cnt('prog')}</b></div>
+  <div>Canceló: <b>${cnt('cancelo')}</b></div><div>Canceló tarde: <b>${cnt('cancelo_tarde')}</b></div><div>Faltó: <b>${cnt('falto')}</b></div><div>Total: <b>${ses.length}</b></div></div></div>
+  <p class="mut">"Proyectado" = lo ya facturado + turnos todavía programados del mes. No incluye deudas de meses anteriores.</p>`;
+}
+function ajustesView(){
+  const st=S.settings;
+  return `<h1>Ajustes</h1>
+  <div class="card"><label>Tu nombre (firma de los mensajes)</label><input value="${esc(st.name)}" data-chg="sname" placeholder="Lic. ...">
+  <div class="tog"><input type="checkbox" id="cl" data-chg="clate" ${st.chargeLate?'checked':''}><label for="cl" style="margin:0">Cobrar cancelación tardía</label></div>
+  <div class="tog"><input type="checkbox" id="ca" data-chg="cabs" ${st.chargeAbsent?'checked':''}><label for="ca" style="margin:0">Cobrar si falta sin avisar</label></div></div>
+  <div class="card"><b>Copia de seguridad</b><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
+  <div class="row" style="flex-wrap:wrap"><button data-act="export">Descargar copia</button><button class="sec" data-act="import">Restaurar copia</button></div>
+  <input type="file" id="imp" accept=".json,application/json" hidden></div>
+  <div class="card"><div class="row" style="flex-wrap:wrap"><button class="sec" data-act="chpass">Cambiar clave</button><button class="sec" data-act="lock">Bloquear ahora</button></div></div>`;
+}
+function modalView(){
+  const m=ui.modal;let inner='';
+  const patOpts=sel=>`<option value="">— elegir —</option>`+[...S.patients].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  if(m.t==='ses'){
+    const p=m.pid?pat(m.pid):null;
+    inner=`<h1>Nuevo turno</h1><form data-form="ses"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
+    <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="10:00" required></div></div>
+    <div class="grid2"><div><label>Valor</label><input type="number" name="fee" min="0" step="any" value="${p?p.fee||0:''}" required></div><div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div></div>
+    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+  }else if(m.t==='pat'){
+    const p=m.id?pat(m.id):{};
+    inner=`<h1>${m.id?'Editar':'Nuevo'} paciente</h1><form data-form="pat" data-id="${m.id||''}">
+    <label>Nombre</label><input name="name" required value="${esc(p.name)}">
+    <label>WhatsApp (ej: 11 2345 6789)</label><input name="phone" inputmode="tel" value="${esc(p.phone)}">
+    <div class="grid2"><div><label>Valor por sesión</label><input type="number" name="fee" min="0" step="any" value="${p.fee??''}" required></div><div><label>Obra social / particular</label><input name="os" value="${esc(p.os)}" placeholder="Particular"></div></div>
+    <label>Notas administrativas</label><textarea name="notes" rows="3" placeholder="Horario fijo, forma de pago, etc. (no pongas datos clínicos acá)">${esc(p.notes)}</textarea>
+    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+  }else if(m.t==='pay'){
+    const b=m.pid?Math.max(0,balance(m.pid)):'';
+    inner=`<h1>Registrar cobro</h1><form data-form="pay"><label>Paciente</label><select name="pid" required data-chg="pickdebt">${patOpts(m.pid)}</select>
+    <div class="grid2"><div><label>Monto</label><input type="number" name="amount" min="0" step="any" value="${b||''}" required></div><div><label>Fecha</label><input type="date" name="date" value="${today()}" required></div></div>
+    <label>Medio</label><select name="method"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Otro</option></select>
+    <label>Nota (opcional)</label><input name="note">
+    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+  }else if(m.t==='pass'){
+    inner=`<h1>Cambiar clave</h1><form data-form="pass"><label>Clave nueva (mínimo 6 caracteres)</label><input type="password" name="p" minlength="6" required>
+    <label>Repetir</label><input type="password" name="p2" required><p class="err">${esc(ui.err)}</p>
+    <div class="row"><button>Cambiar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+  }
+  return `<div class="modal" data-act="bg"><div class="sheet">${inner}</div></div>`;
+}
+
+/* ---------- eventos ---------- */
+const go=async()=>{await save();render()};
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-act]');if(!t)return;
+  const a=t.dataset.act,d=t.dataset;
+  if(a==='bg'){if(e.target===t){ui.modal=null;render()}return}
+  if(a==='tab'){ui.tab=d.t==='aj'?'aj':d.t;ui.pid=null;ui.modal=null;render()}
+  else if(a==='day'){ui.date=d.n==='0'?today():addDays(ui.date,+d.n);render()}
+  else if(a==='month'){ui.month=d.m;render()}
+  else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
+  else if(a==='newpat'){ui.modal={t:'pat'};render()}
+  else if(a==='editpat'){ui.modal={t:'pat',id:d.id};render()}
+  else if(a==='newpay'){ui.modal={t:'pay',pid:d.id||''};render()}
+  else if(a==='openpat'){ui.pid=d.id;render();scrollTo(0,0)}
+  else if(a==='back'){ui.pid=null;render()}
+  else if(a==='close'){ui.modal=null;render()}
+  else if(a==='delses'){if(confirm('¿Borrar este turno?')){S.sessions=S.sessions.filter(s=>s.id!==d.id);await go()}}
+  else if(a==='delpay'){if(confirm('¿Borrar este cobro?')){S.payments=S.payments.filter(x=>x.id!==d.id);await go()}}
+  else if(a==='delpat'){if(confirm('¿Eliminar paciente con todas sus sesiones y cobros? No se puede deshacer.')){
+    S.sessions=S.sessions.filter(s=>s.pid!==d.id);S.payments=S.payments.filter(x=>x.pid!==d.id);S.patients=S.patients.filter(p=>p.id!==d.id);ui.pid=null;await go()}}
+  else if(a==='lock'){lock()}
+  else if(a==='chpass'){ui.err='';ui.modal={t:'pass'};render()}
+  else if(a==='export'){
+    const blob=new Blob([localStorage.getItem(LS)],{type:'application/json'});
+    const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`consultorio-backup-${today()}.json`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);
+  }
+  else if(a==='import'){document.getElementById('imp').click()}
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='imp'&&t.files[0]){
+    try{
+      const txt=await t.files[0].text();const o=JSON.parse(txt);
+      if(!o.salt||!o.iv||!o.ct)throw 0;
+      if(!confirm('Esto reemplaza todos los datos actuales por los de la copia. Después vas a entrar con la clave que tenía esa copia. ¿Seguir?'))return;
+      localStorage.setItem(LS,txt);lock();
+    }catch(_){alert('El archivo no es una copia válida.')}
+    return;
+  }
+  const c=t.dataset.chg;if(!c)return;
+  if(c==='goto'&&t.value){ui.date=t.value;render()}
+  else if(c==='status'){const s=S.sessions.find(x=>x.id===t.dataset.id);if(s){s.status=t.value;await go()}}
+  else if(c==='sname'){S.settings.name=t.value.trim();await save()}
+  else if(c==='clate'){S.settings.chargeLate=t.checked;await save()}
+  else if(c==='cabs'){S.settings.chargeAbsent=t.checked;await save()}
+  else if(c==='pickfee'){const f=t.form.elements.fee,o=t.selectedOptions[0];if(o&&o.dataset.fee)f.value=o.dataset.fee}
+  else if(c==='pickdebt'){if(t.value)t.form.elements.amount.value=Math.max(0,balance(t.value))||''}
+});
+document.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=e.target,k=f.dataset.form,v=Object.fromEntries(new FormData(f));
+  if(k==='unlock'){
+    const first=!localStorage.getItem(LS);
+    if(first&&v.p!==v.p2){ui.err='Las claves no coinciden';render();return}
+    try{
+      if(await unlock(v.p)){ui.locked=false;ui.err='';try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(_){}render()}
+      else{ui.err='Clave incorrecta';render()}
+    }catch(_){ui.err='No se pudo abrir (¿datos dañados?)';render()}
+  }
+  else if(k==='ses'){
+    const n=Math.max(1,Math.min(52,+v.rep||1));
+    for(let i=0;i<n;i++)S.sessions.push({id:uid(),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0});
+    ui.date=v.date;ui.modal=null;ui.tab='agenda';ui.pid=null;await go();
+  }
+  else if(k==='pat'){
+    const rec={name:v.name.trim(),phone:v.phone.trim(),fee:+v.fee||0,os:v.os.trim(),notes:v.notes.trim()};
+    if(f.dataset.id)Object.assign(pat(f.dataset.id),rec);else S.patients.push({id:uid(),...rec});
+    ui.modal=null;await go();
+  }
+  else if(k==='pay'){
+    S.payments.push({id:uid(),pid:v.pid,date:v.date,amount:+v.amount||0,method:v.method,note:v.note.trim()});
+    ui.modal=null;await go();
+  }
+  else if(k==='pass'){
+    if(v.p!==v.p2){ui.err='Las claves no coinciden';render();return}
+    SALT=crypto.getRandomValues(new Uint8Array(16));KEY=await deriveKey(v.p,SALT);ui.err='';ui.modal=null;await go();alert('Clave cambiada. Descargá una copia nueva: las anteriores usan la clave vieja.');
+  }
+});
+function lock(){S=null;KEY=null;SALT=null;ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};render()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!ui.locked)lock()});
+
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
