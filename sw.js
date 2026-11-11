@@ -1,4 +1,4 @@
-const C = 'consultorio-v1';
+const C = 'consultorio-v2';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -13,19 +13,19 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Cache primero (funciona offline) y se actualiza en segundo plano.
+// Red primero (las mejoras llegan al abrir con internet) y caché como respaldo sin conexión.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
   e.respondWith(
-    caches.match(e.request).then(hit => {
-      const net = fetch(e.request).then(r => {
-        if (r && r.ok && new URL(e.request.url).origin === location.origin) {
+    fetch(req, { cache: 'no-cache' })
+      .then(r => {
+        if (r && r.ok) {
           const copy = r.clone();
-          caches.open(C).then(c => c.put(e.request, copy));
+          caches.open(C).then(c => c.put(req, copy));
         }
         return r;
-      }).catch(() => hit);
-      return hit || net;
-    })
+      })
+      .catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
   );
 });
