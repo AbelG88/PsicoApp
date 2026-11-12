@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#2f4a63">
+<meta name="theme-color" content="#fbf9f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Consultorio">
 <link rel="manifest" href="manifest.webmanifest">
@@ -11,35 +11,65 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Consultorio</title>
 <style>
-:root{--bg:#f6f4ef;--card:#fff;--ink:#1f2933;--mut:#6b7785;--pri:#2f4a63;--pri2:#e4ebf2;--ok:#2e7d5b;--warn:#b7791f;--bad:#b83a3a;--line:#e5e1d8;--r:14px}
-@media(prefers-color-scheme:dark){:root{--bg:#14181d;--card:#1d232a;--ink:#e8ecf0;--mut:#93a0ad;--pri:#7fa6cc;--pri2:#26323f;--ok:#58b88c;--warn:#e0a94b;--bad:#e27474;--line:#2b333c}}
+:root{--bg:#fbf9f4;--card:#fff;--ink:#1b2420;--mut:#6d756f;--pri:#2b6b57;--pri2:#e6efeb;--onpri:#fff;--warn:#a8670f;--warnbg:#fbf0d9;--bad:#b83a3a;--line:#ebe7dd;--r:14px}
+@media(prefers-color-scheme:dark){:root{--bg:#141917;--card:#1c2320;--ink:#e8eeea;--mut:#8e9a93;--pri:#5fb394;--pri2:#25332d;--onpri:#0e1a15;--warn:#e0a94b;--warnbg:#3a2f17;--bad:#e27474;--line:#2b3530}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-#app{max-width:640px;margin:0 auto;padding:12px 14px 92px}
-h1{font-size:1.25rem;margin:6px 0 12px}h2{font-size:1.05rem;margin:18px 0 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:8px 0}
-.row{display:flex;align-items:center;gap:10px}.sp{justify-content:space-between}.grow{flex:1;min-width:0}
-.mut{color:var(--mut);font-size:.88rem}.big{font-size:1.35rem;font-weight:650}
-.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
-button,.btn{font:inherit;border:0;border-radius:10px;padding:10px 14px;background:var(--pri);color:#fff;cursor:pointer;text-decoration:none;display:inline-block}
-button.sec,.btn.sec{background:var(--pri2);color:var(--pri)}button.dng{background:transparent;color:var(--bad);padding:6px 8px}
-button.sm,.btn.sm{padding:6px 10px;font-size:.88rem}
-input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
-label{display:block;font-size:.85rem;color:var(--mut);margin:10px 0 4px}
-.chip{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
-.chip.prog.late{background:#fbefd5;color:#8a5a0b}.banner{background:var(--pri2);color:var(--ink);border-radius:var(--r);padding:10px 12px;margin:8px 0}.banner.warn{background:#fbefd5;color:#6b4a0c}.banner .row{margin-top:8px;flex-wrap:wrap}
-.chip.asistio{background:#dff1e8;color:#1f6b4a}.chip.falto,.chip.cancelo_tarde{background:#f8e3e3;color:#9b2f2f}.chip.cancelo{background:#eee;color:#666}
-nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
-nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:10px 2px;font-size:.78rem}
-nav button.on{color:var(--pri);font-weight:650}
-.fab{position:fixed;right:16px;bottom:78px;border-radius:99px;padding:14px 18px;box-shadow:0 4px 14px #0003}
-.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-end;justify-content:center;z-index:9}
-.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px 16px 28px}
-.lock{max-width:340px;margin:18vh auto 0;text-align:center}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:640px;margin:0 auto;padding:18px 20px 110px}
+h1{font-size:2rem;line-height:1.1;margin:4px 0 4px;font-weight:750;letter-spacing:-.02em}
+h1.sm{font-size:1.6rem}
+h3.sec{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:26px 0 4px;font-weight:600}
+.sub{color:var(--mut);font-size:.92rem}.mut{color:var(--mut);font-size:.88rem}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.icon{background:none;border:0;color:var(--mut);padding:8px;border-radius:50%;cursor:pointer;font-size:1.5rem;line-height:1}
+.item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.item:last-child{border-bottom:0}
+.item.col{flex-wrap:wrap}
+.time{font-weight:600;min-width:46px}
+.grow{flex:1;min-width:0}
+.row{display:flex;align-items:center;gap:10px}.sp{justify-content:space-between}.wrap{flex-wrap:wrap}
+.ok{color:var(--pri)}.warnt{color:var(--warn)}.bad{color:var(--bad)}
+.big{font-size:2.5rem;font-weight:750;letter-spacing:-.02em;line-height:1.1}
+.med{font-size:1.25rem;font-weight:650}
+button,.btn{font:inherit;border:0;border-radius:12px;padding:13px 16px;background:var(--pri);color:var(--onpri);cursor:pointer;text-decoration:none;display:inline-block;text-align:center;font-weight:550}
+button.sec,.btn.sec{background:var(--pri2);color:var(--pri)}
+button.lnk,.btn.lnk{background:none;color:var(--pri);padding:6px 0;font-weight:550}
+button.dng{background:none;color:var(--bad);padding:6px 0;font-weight:550}
+button.sm,.btn.sm{padding:8px 12px;font-size:.88rem}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0 10px}
+input,select,textarea{font:inherit;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink)}
+label{display:block;font-size:.82rem;color:var(--mut);margin:12px 0 5px}
 .err{color:var(--bad);min-height:1.2em;font-size:.9rem}
-.tog{display:flex;gap:10px;align-items:center;margin:10px 0}.tog input{width:auto}
+.chk{width:42px;height:42px;border-radius:50%;padding:0;background:none;border:1.5px solid var(--line);color:transparent;display:flex;align-items:center;justify-content:center;flex:none}
+.chk.on{background:var(--pri);border-color:var(--pri);color:var(--onpri)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.chips label{margin:0;font-size:.95rem;color:var(--pri)}
+.chips input{position:absolute;opacity:0;pointer-events:none;width:0}
+.chips span{display:inline-block;padding:8px 14px;border-radius:99px;background:var(--pri2);color:var(--pri);font-weight:550;cursor:pointer}
+.chips input:checked+span{background:var(--pri);color:var(--onpri)}
+.tag{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
+.banner{background:var(--pri2);border-radius:var(--r);padding:12px 14px;margin:14px 0}
+.banner.warn{background:var(--warnbg);color:var(--warn)}
+.banner .row{margin-top:8px}
+.datenav{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px}
+.dlabel{position:relative;font-weight:600;margin:0;color:var(--ink);font-size:1rem;cursor:pointer;text-align:center;flex:1}
+.dlabel input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 12px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.kpis .sub{margin-bottom:2px}.kpis b{font-size:1.05rem}
+.empty{color:var(--mut);padding:22px 0;text-align:center}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 2px;font-size:.92rem;position:relative}
+nav button.on{color:var(--pri);font-weight:650}
+nav button.on::before{content:"";position:absolute;top:-1px;left:25%;right:25%;height:3px;background:var(--pri);border-radius:0 0 3px 3px}
+.fab{position:fixed;right:20px;bottom:84px;width:58px;height:58px;border-radius:50%;padding:0;font-size:2rem;line-height:1;box-shadow:0 6px 16px #0003;display:flex;align-items:center;justify-content:center}
+.modal{position:fixed;inset:0;background:#0007;display:flex;align-items:flex-end;justify-content:center;z-index:9}
+.sheet{background:var(--bg);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:10px 20px 30px}
+.sheet::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:var(--line);margin:4px auto 14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lock{max-width:340px;margin:18vh auto 0;text-align:center}
+.tog{display:flex;gap:10px;align-items:center;margin:12px 0}.tog input{width:auto}.tog label{margin:0;color:var(--ink);font-size:1rem}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:10px 0}
+.warnline{color:var(--warn);font-size:.88rem;margin:4px 0}
 @media print{nav,.fab,button{display:none!important}}
 </style>
 </head>
@@ -59,9 +89,15 @@ const pad=n=>String(n).padStart(2,'0');
 const dstr=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today=()=>dstr(new Date());
 const addDays=(s,n)=>{const d=new Date(s+'T12:00');d.setDate(d.getDate()+n);return dstr(d)};
+const capital=s=>s.charAt(0).toUpperCase()+s.slice(1);
 const longDate=s=>new Date(s+'T12:00').toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+const dayName=s=>new Date(s+'T12:00').toLocaleDateString('es-AR',{weekday:'long'});
 const shortDate=s=>{const [y,m,d]=s.split('-');return `${d}/${m}`};
 const monthName=m=>new Date(m+'-15T12:00').toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/864e5);
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const CHECK='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+const GEAR='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 
 /* ---------- cifrado ---------- */
 async function deriveKey(pass,salt){
@@ -80,13 +116,28 @@ async function decryptObj(key,{iv,ct}){
 
 /* ---------- estado ---------- */
 let S=null,KEY=null,SALT=null;
-const blank=()=>({patients:[],sessions:[],payments:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:''}});
-let ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false};
+const blank=()=>({patients:[],sessions:[],payments:[],fin:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:''}});
+const freshUi=()=>({locked:true,tab:'hoy',prev:'hoy',date:today(),pid:null,fid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false});
+let ui=freshUi();
 const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
+const OSLAB={pend:'Sin presentar',pres:'Presentada',cobr:'Cobrada por la obra social',deb:'Débito'};
 
 async function save(){
   const blob=await encryptObj(KEY,S);
   localStorage.setItem(LS,JSON.stringify({v:1,salt:b64(SALT),...blob}));
+}
+function migrate(){
+  const d=blank();
+  S.settings=Object.assign(d.settings,S.settings||{});
+  S.fin=S.fin||[];
+  // versiones anteriores guardaban la obra social como texto libre
+  for(const p of S.patients){
+    if(p.fid===undefined&&p.os&&!/^particular$/i.test(p.os.trim())){
+      let f=S.fin.find(x=>norm(x.name)===norm(p.os));
+      if(!f){f={id:uid(),name:p.os.trim(),fee:0,codigo:'',diaLimite:'',plazoPago:60,reqAuth:false,notes:''};S.fin.push(f)}
+      p.fid=f.id;
+    }
+  }
 }
 async function unlock(pass){
   const raw=localStorage.getItem(LS);
@@ -99,16 +150,20 @@ async function unlock(pass){
   const key=await deriveKey(pass,salt);
   try{S=await decryptObj(key,o);}catch(e){return false;}
   SALT=salt;KEY=key;
-  S.settings=Object.assign(blank().settings,S.settings||{});
+  migrate();
   return true;
 }
 
 /* ---------- lógica ---------- */
 const charged=s=>s.status==='asistio'||(s.status==='cancelo_tarde'&&S.settings.chargeLate)||(s.status==='falto'&&S.settings.chargeAbsent);
 const pat=id=>S.patients.find(p=>p.id===id);
+const fin=id=>S.fin.find(f=>f.id===id);
+const finName=p=>{const f=p&&p.fid&&fin(p.fid);return f?f.name:'Particular'};
 const billed=pid=>S.sessions.filter(s=>s.pid===pid&&charged(s)).reduce((a,s)=>a+(+s.fee||0),0);
 const paid=pid=>S.payments.filter(p=>p.pid===pid).reduce((a,p)=>a+(+p.amount||0),0);
 const balance=pid=>billed(pid)-paid(pid);
+const osBill=s=>!!(s.fid&&s.osSt&&s.status==='asistio');          // sesión que se le factura a la obra social
+const osAmt=s=>osBill(s)?(+s.osAmt||0):0;
 const waPhone=t=>{
   let d=String(t||'').replace(/\D/g,'').replace(/^0+/,'');
   if(!d)return '';
@@ -120,25 +175,42 @@ const waPhone=t=>{
   return d.length===10?'549'+d:(ar?'54'+d:d);
 };
 const waOk=p=>waPhone(p.phone).length>=11;
-const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const waLink=(p,msg)=>`https://wa.me/${waPhone(p.phone)}?text=${encodeURIComponent(msg)}`;
 const first=p=>p.name.trim().split(/\s+/)[0];
-const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/864e5);
+const sign=()=>S.settings.name?`\n${S.settings.name}`:'';
 const pending=()=>S.sessions.filter(s=>s.status==='prog'&&s.date<today()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
 const backupAge=()=>S.settings.lastBackup?daysBetween(S.settings.lastBackup,today()):null;
-const sign=()=>S.settings.name?`\n${S.settings.name}`:'';
+const monthCount=(pid,ym)=>S.sessions.filter(s=>s.pid===pid&&s.status==='asistio'&&s.date.startsWith(ym)).length;
+const limitDate=(f,ym)=>{
+  if(!f.diaLimite)return '';
+  const d=new Date(ym+'-15T12:00');d.setMonth(d.getMonth()+1);
+  return dstr(d).slice(0,7)+'-'+pad(Math.min(+f.diaLimite,28));
+};
+function finStats(id){
+  const r={pend:0,pres:0,deb:0,nPend:0,nPres:0,nDeb:0};
+  for(const s of S.sessions){
+    if(s.fid!==id||!osBill(s))continue;
+    const a=+s.osAmt||0;
+    if(s.osSt==='pend'){r.pend+=a;r.nPend++}
+    else if(s.osSt==='pres'){r.pres+=a;r.nPres++}
+    else if(s.osSt==='deb'){r.deb+=a;r.nDeb++}
+  }
+  r.total=r.pend+r.pres+r.deb;
+  return r;
+}
+const statusLabel=s=>s.status==='prog'&&s.date<today()?'Sin cerrar':STATUS[s.status];
+const owes=b=>b>0?`Debe ${money(b)}`:b<0?`A favor ${money(-b)}`:'Al día';
 
 /* ---------- vistas ---------- */
 function render(){
   const app=document.getElementById('app');
   if(ui.locked){app.innerHTML=lockView();return}
   let body='';
-  if(ui.tab==='agenda')body=agendaView();
+  if(ui.tab==='aj')body=ajustesView();
+  else if(ui.tab==='hoy')body=hoyView();
   else if(ui.tab==='pac')body=ui.pid?patientView():patientsView();
-  else if(ui.tab==='cobros')body=cobrosView();
-  else if(ui.tab==='mes')body=mesView();
-  else body=ajustesView();
-  const tabs=[['agenda','Agenda'],['pac','Pacientes'],['cobros','Cobros'],['mes','Mes'],['aj','Ajustes']];
+  else body=ui.fid?finView():plataView();
+  const tabs=[['hoy','Hoy'],['pac','Pacientes'],['plata','Plata']];
   app.innerHTML=body+`<nav>${tabs.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</nav>`+(ui.modal?modalView():'');
 }
 function lockView(){
@@ -149,136 +221,247 @@ function lockView(){
   ${first?'<input type="password" name="p2" placeholder="Repetir clave" required style="margin-top:8px">':''}
   <p class="err">${esc(ui.err)}</p><button style="width:100%">${first?'Crear y entrar':'Entrar'}</button></form></div>`;
 }
-function agendaView(){
+const gearBtn=`<button class="icon" data-act="aj" aria-label="Ajustes">${GEAR}</button>`;
+
+function hoyView(){
   const list=S.sessions.filter(s=>s.date===ui.date).sort((a,b)=>a.time.localeCompare(b.time));
   const isToday=ui.date===today();
+  const n=list.length,m=list.filter(s=>s.status==='prog').length;
   const pend=pending(),age=backupAge();
   const pendBanner=pend.length?`<div class="banner warn">Tenés <b>${pend.length}</b> turno${pend.length>1?'s':''} pasado${pend.length>1?'s':''} sin cerrar (siguen como "Programado" y no se cuentan).<div class="row"><button class="sm" data-act="gopend">Revisar</button></div></div>`:'';
   const bkBanner=S.patients.length&&(age===null||age>=15)?`<div class="banner">${age===null?'Todavía no descargaste ninguna copia de seguridad.':`Hace <b>${age}</b> días que no descargás una copia de seguridad.`}<div class="row"><button class="sm" data-act="export">Descargar copia</button></div></div>`:'';
-  return `<h1>${esc(longDate(ui.date))}</h1>
+  const rows=list.map(s=>{const p=pat(s.pid);if(!p)return '';
+    const late=s.status==='prog'&&s.date<today();
+    return `<div class="item" data-act="opensess" data-id="${s.id}"><div class="time">${esc(s.time)}</div>
+    <div class="grow"><div>${esc(p.name)}</div><div class="sub${late?' warnt':''}">${money(s.fee)}${s.osAmt?' + OS '+money(s.osAmt):''} · ${statusLabel(s)}</div></div>
+    <button class="chk${s.status==='asistio'?' on':''}" data-act="tog" data-id="${s.id}" aria-label="Marcar asistió">${CHECK}</button></div>`}).join('');
+  return `<div class="top"><div><h1>${isToday?'Hoy':esc(capital(dayName(ui.date)))}</h1>
+  <div class="sub">${n} turno${n===1?'':'s'}${n?` · ${m?m+' por marcar':'todo marcado'}`:''}</div></div>${gearBtn}</div>
   ${pendBanner}${bkBanner}
-  <div class="row"><button class="sec sm" data-act="day" data-n="-1">‹</button>
-  <button class="sec sm" data-act="day" data-n="0">Hoy</button>
-  <button class="sec sm" data-act="day" data-n="1">›</button>
-  <input type="date" value="${ui.date}" data-chg="goto" style="width:auto;margin-left:auto"></div>
-  ${list.length?list.map(s=>{const p=pat(s.pid);if(!p)return'';
-   const msg=`Hola ${first(p)}, te recuerdo tu sesión del ${longDate(s.date)} a las ${s.time}. ¡Gracias!${sign()}`;
-   return `<div class="card"><div class="row sp"><div class="grow"><b>${esc(s.time)}</b> · ${esc(p.name)}<div class="mut">${money(s.fee)}</div></div>
-   <span class="chip ${s.status}${s.status==='prog'&&s.date<today()?' late':''}">${s.status==='prog'&&s.date<today()?'Sin cerrar':STATUS[s.status]}</span></div>
-   <div class="row" style="margin-top:8px;flex-wrap:wrap">
-   <select data-chg="status" data-id="${s.id}" style="width:auto;flex:1">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${s.status===k?' selected':''}>${v}</option>`).join('')}</select>
-   ${waOk(p)?`<a class="btn sec sm" target="_blank" rel="noopener" href="${waLink(p,msg)}">WhatsApp</a>`:''}
-   <button class="sec sm" data-act="editses" data-id="${s.id}">Editar</button><button class="dng sm" data-act="delses" data-id="${s.id}">Borrar</button></div></div>`}).join('')
-   :`<div class="card mut">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}
-  <button class="fab" data-act="newses">+ Turno</button>`;
+  <div class="datenav"><button class="icon" data-act="day" data-n="-1" aria-label="Día anterior">‹</button>
+  <label class="dlabel">${esc(capital(longDate(ui.date)))}<input type="date" value="${ui.date}" data-chg="goto"></label>
+  <button class="icon" data-act="day" data-n="1" aria-label="Día siguiente">›</button></div>
+  ${isToday?'':'<div style="text-align:center"><button class="lnk" data-act="day" data-n="0">Volver a hoy</button></div>'}
+  <div>${rows||`<div class="empty">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}</div>
+  <button class="fab" data-act="newses" aria-label="Nuevo turno">+</button>`;
 }
+
 function patientListHtml(){
   const q=norm(ui.q),qd=ui.q.replace(/\D/g,'');
-  const ps=S.patients.filter(p=>!!p.archived===ui.arch&&(!q||norm(p.name).includes(q)||norm(p.os).includes(q)||(qd.length>=3&&String(p.phone||'').replace(/\D/g,'').includes(qd)))).sort((a,b)=>a.name.localeCompare(b.name));
-  if(!ps.length)return `<div class="card mut">${ui.q?'Ningún paciente coincide con la búsqueda.':ui.arch?'No hay pacientes archivados.':'Todavía no cargaste pacientes.'}</div>`;
+  const ps=S.patients.filter(p=>!!p.archived===ui.arch&&(!q||norm(p.name).includes(q)||norm(finName(p)).includes(q)||(qd.length>=3&&String(p.phone||'').replace(/\D/g,'').includes(qd)))).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!ps.length)return `<div class="empty">${ui.q?'Ningún paciente coincide con la búsqueda.':ui.arch?'No hay pacientes archivados.':'Todavía no cargaste pacientes.'}</div>`;
   return ps.map(p=>{const b=balance(p.id);
-   return `<div class="card" data-act="openpat" data-id="${p.id}" style="cursor:pointer"><div class="row sp"><div class="grow"><b>${esc(p.name)}</b><div class="mut">${esc(p.os||'Particular')} · ${money(p.fee)}</div></div>
-   <div class="${b>0?'bad':'mut'}">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div></div></div>`}).join('');
+    return `<div class="item" data-act="openpat" data-id="${p.id}"><div class="grow"><div><b>${esc(p.name)}</b></div><div class="sub">${esc(finName(p))} · ${money(p.fee)}</div></div>
+    <div class="${b>0?'bad':'mut'}">${b>0?money(b):b<0?'A favor '+money(-b):'Al día'}</div></div>`}).join('');
 }
 function patientsView(){
   const na=S.patients.filter(p=>p.archived).length;
-  return `<h1>${ui.arch?'Pacientes archivados':'Pacientes'}</h1>
-  <input type="search" id="q" data-inp="q" value="${esc(ui.q)}" placeholder="Buscar por nombre, obra social o teléfono" autocomplete="off">
+  return `<div class="top"><h1>${ui.arch?'Archivados':'Pacientes'}</h1></div>
+  <input type="search" id="q" data-inp="q" value="${esc(ui.q)}" placeholder="Buscar por nombre, obra social o teléfono" autocomplete="off" style="margin:10px 0 4px">
   <div id="plist">${patientListHtml()}</div>
-  ${na||ui.arch?`<div style="margin-top:10px"><button class="sec sm" data-act="toggarch">${ui.arch?'‹ Volver a pacientes activos':`Ver archivados (${na})`}</button></div>`:''}
-  ${ui.arch?'':'<button class="fab" data-act="newpat">+ Paciente</button>'}`;
+  ${na||ui.arch?`<div style="margin-top:12px"><button class="lnk" data-act="toggarch">${ui.arch?'‹ Volver a pacientes activos':`Ver archivados (${na})`}</button></div>`:''}
+  ${ui.arch?'':'<button class="fab" data-act="newpat" aria-label="Nuevo paciente">+</button>'}`;
 }
 function patientView(){
   const p=pat(ui.pid);if(!p){ui.pid=null;return patientsView()}
   const b=balance(p.id);
-  const ses=S.sessions.filter(s=>s.pid===p.id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,30);
-  const pays=S.payments.filter(x=>x.pid===p.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
+  const hist=[
+    ...S.sessions.filter(s=>s.pid===p.id).map(s=>({d:s.date,t:s.time,s})),
+    ...S.payments.filter(x=>x.pid===p.id).map(x=>({d:x.date,t:'99:99',x}))
+  ].sort((a,b)=>(b.d+b.t).localeCompare(a.d+a.t)).slice(0,50);
   const debtMsg=`Hola ${first(p)}, te paso lo pendiente a la fecha: ${money(b)}. Cuando puedas me avisás. ¡Gracias!${sign()}`;
-  return `<div class="row"><button class="sec sm" data-act="back">‹ Volver</button><h1 style="margin:0">${esc(p.name)}</h1></div>
-  <div class="card"><div class="mut">${p.archived?'<span class="chip">Archivado</span> ':''}${esc(p.os||'Particular')} · ${money(p.fee)} por sesión${p.phone?' · '+esc(p.phone):''}</div>
-  ${p.notes?`<div style="margin-top:6px;white-space:pre-wrap">${esc(p.notes)}</div>`:''}
-  <div class="big ${b>0?'bad':'ok'}" style="margin-top:8px">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div>
-  <div class="row" style="margin-top:10px;flex-wrap:wrap">
-  <button data-act="newpay" data-id="${p.id}">Registrar cobro</button>
-  <button class="sec" data-act="newses" data-id="${p.id}">Turno</button>
-  ${b>0&&waOk(p)?`<a class="btn sec" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar deuda</a>`:''}
-  <button class="sec" data-act="editpat" data-id="${p.id}">Editar</button>
-  <button class="sec" data-act="archpat" data-id="${p.id}">${p.archived?'Reactivar':'Archivar'}</button></div></div>
-  <h2>Sesiones</h2>${ses.length?ses.map(s=>`<div class="card row sp"><div>${shortDate(s.date)} ${esc(s.time)}<div class="mut">${money(s.fee)}</div></div><span class="chip ${s.status}">${STATUS[s.status]}</span></div>`).join(''):'<div class="mut">Sin sesiones.</div>'}
-  <h2>Cobros</h2>${pays.length?pays.map(x=>`<div class="card row sp"><div>${shortDate(x.date)} · ${esc(x.method||'')}<div class="mut">${esc(x.note||'')}</div></div><div class="row"><b class="ok">${money(x.amount)}</b><button class="dng sm" data-act="delpay" data-id="${x.id}">✕</button></div></div>`).join(''):'<div class="mut">Sin cobros.</div>'}
-  <p class="mut" style="margin-top:20px">Archivar oculta al paciente de las listas y de los turnos nuevos, pero conserva su historial y su deuda.</p><div><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>`;
+  const cnt=p.tope?monthCount(p.id,today().slice(0,7)):0;
+  const info=[finName(p),p.fid&&p.afil?'afil. '+esc(p.afil):'',money(p.fee)+' por sesión',p.phone?esc(p.phone):''].filter(Boolean).join(' · ');
+  return `<div class="top"><button class="lnk" data-act="back">‹ Pacientes</button><button class="lnk" data-act="editpat" data-id="${p.id}">Editar</button></div>
+  <h1 style="margin-top:12px">${esc(p.name)}</h1>
+  <div class="sub">${p.archived?'<span class="tag">Archivado</span> ':''}${info}</div>
+  ${p.fid&&p.osFee?`<div class="sub">La obra social paga ${money(p.osFee)} por sesión${p.tope?` · este mes: ${cnt} de ${p.tope} sesiones`:''}</div>`:''}
+  ${p.notes?`<div class="sub" style="margin-top:6px;white-space:pre-wrap">${esc(p.notes)}</div>`:''}
+  <div class="sub" style="margin-top:22px">${b<0?'A favor':'Debe'}</div>
+  <div class="big ${b>0?'bad':''}">${money(Math.abs(b))}</div>
+  <div class="btns"><button data-act="newpay" data-id="${p.id}">Cobrar</button><button class="sec" data-act="newses" data-id="${p.id}">Turno</button></div>
+  ${b>0&&waOk(p)?`<a class="btn lnk" style="padding-left:0" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar la deuda por WhatsApp</a>`:''}
+  <h3 class="sec">Historial</h3>
+  ${hist.length?hist.map(h=>h.s?sessionHist(h.s):`<div class="item" data-act="delpay" data-id="${h.x.id}"><div class="time">${shortDate(h.x.date)}</div><div class="grow"><div>Cobro</div><div class="sub">${esc(h.x.method||'')}${h.x.note?' · '+esc(h.x.note):''}</div></div><div class="ok">${money(h.x.amount)}</div></div>`).join(''):'<div class="empty">Sin movimientos.</div>'}
+  <div class="row sp" style="margin-top:26px"><button class="lnk" data-act="archpat" data-id="${p.id}">${p.archived?'Reactivar paciente':'Archivar paciente'}</button><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>
+  <p class="mut">Archivar oculta al paciente de las listas y de los turnos nuevos, pero conserva su historial y su deuda. Tocá un cobro para borrarlo.</p>`;
 }
-function cobrosView(){
-  const rows=S.patients.map(p=>({p,b:balance(p.id)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
-  const tot=rows.reduce((a,x)=>a+x.b,0);
-  return `<h1>Cobros y deudas</h1>
-  <div class="kpi"><div class="mut">Deuda total pendiente</div><div class="big ${tot>0?'bad':'ok'}">${money(tot)}</div></div>
-  ${rows.length?rows.map(({p,b})=>`<div class="card row sp"><div class="grow"><b>${esc(p.name)}</b><div class="bad">${money(b)}</div></div>
-  <button class="sm" data-act="newpay" data-id="${p.id}">Cobrar</button></div>`).join(''):'<div class="card mut">Nadie debe nada. 🎉</div>'}
-  <button class="fab" data-act="newpay">+ Cobro</button>`;
+function sessionHist(s){
+  const amt=charged(s)?(s.fee?money(s.fee):(s.osAmt?'OS '+money(s.osAmt):money(0))):'—';
+  const os=osBill(s)?` · ${OSLAB[s.osSt]}`:'';
+  return `<div class="item" data-act="opensess" data-id="${s.id}"><div class="time">${shortDate(s.date)}</div><div class="grow"><div>Sesión</div><div class="sub">${statusLabel(s)}${os}</div></div><div class="${charged(s)?'':'mut'}">${amt}</div></div>`;
 }
-function mesView(){
+
+function plataView(){
   const m=ui.month;
   const ses=S.sessions.filter(s=>s.date.startsWith(m));
   const cnt=k=>ses.filter(s=>s.status===k).length;
-  const fact=ses.filter(charged).reduce((a,s)=>a+(+s.fee||0),0);
-  const cob=S.payments.filter(x=>x.date.startsWith(m)).reduce((a,x)=>a+(+x.amount||0),0);
-  const prog=ses.filter(s=>s.status==='prog').reduce((a,s)=>a+(+s.fee||0),0);
-  const deuda=S.patients.reduce((a,p)=>a+Math.max(0,balance(p.id)),0);
+  const fact=ses.filter(charged).reduce((a,s)=>a+(+s.fee||0),0)+ses.reduce((a,s)=>a+osAmt(s),0);
+  const prog=ses.filter(s=>s.status==='prog').reduce((a,s)=>a+(+s.fee||0)+(+s.osAmt||0),0);
+  const cob=S.payments.filter(x=>x.date.startsWith(m)).reduce((a,x)=>a+(+x.amount||0),0)
+    +S.sessions.filter(s=>s.osSt==='cobr'&&s.cobFecha&&s.cobFecha.startsWith(m)).reduce((a,s)=>a+(+s.osAmt||0),0);
+  const rows=S.patients.map(p=>({p,b:balance(p.id)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
+  const deuda=rows.reduce((a,x)=>a+x.b,0);
   const mv=n=>{const d=new Date(m+'-15T12:00');d.setMonth(d.getMonth()+n);return dstr(d).slice(0,7)};
-  return `<h1 style="text-transform:capitalize">${esc(monthName(m))}</h1>
-  <div class="row"><button class="sec sm" data-act="month" data-m="${mv(-1)}">‹</button><button class="sec sm" data-act="month" data-m="${today().slice(0,7)}">Este mes</button><button class="sec sm" data-act="month" data-m="${mv(1)}">›</button></div>
-  <div class="grid2" style="margin-top:10px">
-  <div class="kpi"><div class="mut">Cobrado</div><div class="big ok">${money(cob)}</div></div>
-  <div class="kpi"><div class="mut">Facturado (sesiones)</div><div class="big">${money(fact)}</div></div>
-  <div class="kpi"><div class="mut">Proyectado del mes</div><div class="big">${money(fact+prog)}</div></div>
-  <div class="kpi"><div class="mut">Deuda total hoy</div><div class="big bad">${money(deuda)}</div></div></div>
-  <div class="card"><div class="grid2"><div>Asistió: <b>${cnt('asistio')}</b></div><div>Programadas: <b>${cnt('prog')}</b></div>
-  <div>Canceló: <b>${cnt('cancelo')}</b></div><div>Canceló tarde: <b>${cnt('cancelo_tarde')}</b></div><div>Faltó: <b>${cnt('falto')}</b></div><div>Total: <b>${ses.length}</b></div></div></div>
-  <p class="mut">"Proyectado" = lo ya facturado + turnos todavía programados del mes. No incluye deudas de meses anteriores.</p>`;
+  const fins=S.fin.map(f=>({f,st:finStats(f.id)}));
+  const osTotal=fins.reduce((a,x)=>a+x.st.total,0);
+  const parts=[['asistió',cnt('asistio')],['programadas',cnt('prog')],['canceló',cnt('cancelo')],['canceló tarde',cnt('cancelo_tarde')],['faltó',cnt('falto')]].filter(x=>x[1]>0);
+  return `<div class="top"><h1>Plata</h1>${gearBtn}</div>
+  <div class="datenav"><button class="icon" data-act="month" data-m="${mv(-1)}" aria-label="Mes anterior">‹</button>
+  <button class="lnk" style="flex:1;color:var(--ink);font-weight:650" data-act="month" data-m="${today().slice(0,7)}">${esc(capital(monthName(m)))}</button>
+  <button class="icon" data-act="month" data-m="${mv(1)}" aria-label="Mes siguiente">›</button></div>
+  <div class="sub" style="margin-top:12px">Cobrado en el mes</div><div class="big">${money(cob)}</div>
+  <div class="kpis"><div><div class="sub">Facturado</div><b>${money(fact)}</b></div><div><div class="sub">Proyectado</div><b>${money(fact+prog)}</b></div><div><div class="sub">Te deben</div><b class="${deuda>0?'bad':''}">${money(deuda)}</b></div></div>
+  <p class="mut">Proyectado = facturado + turnos todavía programados del mes. Te deben = deuda de pacientes. No incluye deudas de meses anteriores ni lo que deben las obras sociales.</p>
+  <h3 class="sec">Deudas</h3>
+  ${rows.length?rows.map(({p,b})=>`<div class="item" data-act="openpat" data-id="${p.id}"><div class="grow"><div>${esc(p.name)}</div><div class="sub">Debe ${money(b)}</div></div><button class="lnk" data-act="newpay" data-id="${p.id}">Cobrar</button></div>`).join(''):'<div class="empty">Nadie debe nada.</div>'}
+  <h3 class="sec">Obras sociales${osTotal>0?` · te deben ${money(osTotal)}`:''}</h3>
+  ${fins.length?fins.map(({f,st})=>`<div class="item" data-act="openfin" data-id="${f.id}"><div class="grow"><div>${esc(f.name)}</div><div class="sub">${st.nPend?`Por presentar ${money(st.pend)} · `:''}${st.nPres?`Presentado ${money(st.pres)} · `:''}${st.nDeb?`<span class="bad">Débitos ${money(st.deb)}</span> · `:''}${st.total?'':'Sin movimientos · '}${money(f.fee)} por sesión</div></div><div class="${st.total?'':'mut'}">${money(st.total)}</div></div>`).join(''):'<div class="empty">Todavía no cargaste obras sociales o prepagas.<br><button class="lnk" data-act="newfin">Agregar una</button></div>'}
+  <h3 class="sec">Sesiones del mes</h3>
+  <div>${parts.length?parts.map(x=>`${x[1]} ${x[0]}`).join(' · '):'<span class="mut">Sin sesiones este mes.</span>'}</div>
+  <button class="fab" data-act="newpay" aria-label="Nuevo cobro">+</button>`;
 }
+
+function osRow(s,extra){
+  const p=pat(s.pid);if(!p)return '';
+  const f=fin(s.fid);
+  const warn=f&&f.reqAuth&&!s.auth&&s.osSt==='pend';
+  return `<div class="item col"><div class="time" data-act="opensess" data-id="${s.id}">${shortDate(s.date)}</div>
+  <div class="grow" data-act="opensess" data-id="${s.id}"><div>${esc(p.name)}</div><div class="sub">${p.afil?'Afil. '+esc(p.afil)+' · ':''}${s.auth?'Aut. '+esc(s.auth):''}${warn?'<span class="warnt">Falta autorización</span>':''}${extra?(s.auth||warn||p.afil?' · ':'')+extra:''}</div></div>
+  <div>${money(s.osAmt)}</div>${s.osSt==='pres'?`<div class="row" style="width:100%;justify-content:flex-end"><button class="sec sm" data-act="cobsess" data-id="${s.id}">Cobrada</button><button class="sec sm" data-act="debsess" data-id="${s.id}">Débito</button></div>`:''}
+  ${s.osSt==='deb'?`<div class="row" style="width:100%;justify-content:flex-end"><button class="sec sm" data-act="refact" data-id="${s.id}">Refacturar</button><button class="sec sm" data-act="copyrec" data-id="${s.id}">Copiar reclamo</button></div>`:''}</div>`;
+}
+function finView(){
+  const f=fin(ui.fid);if(!f){ui.fid=null;return plataView()}
+  const st=finStats(f.id);
+  const bill=S.sessions.filter(s=>s.fid===f.id&&osBill(s));
+  const byDate=(a,b)=>(a.date+a.time).localeCompare(b.date+b.time);
+  const pend=bill.filter(s=>s.osSt==='pend').sort(byDate);
+  const pres=bill.filter(s=>s.osSt==='pres').sort((a,b)=>(a.presFecha||'').localeCompare(b.presFecha||''));
+  const deb=bill.filter(s=>s.osSt==='deb').sort(byDate);
+  const months=[...new Set(pend.map(s=>s.date.slice(0,7)))].sort();
+  const t=today();
+  const blocks=months.map(ym=>{
+    const list=pend.filter(s=>s.date.startsWith(ym));
+    const lim=limitDate(f,ym);
+    const dl=lim?daysBetween(t,lim):null;
+    const warns=[];
+    const noAut=f.reqAuth?list.filter(s=>!s.auth).length:0;
+    if(noAut)warns.push(`${noAut} ${noAut>1?'sesiones':'sesión'} sin autorización u orden`);
+    const noAf=[...new Set(list.filter(s=>{const p=pat(s.pid);return p&&!p.afil}).map(s=>pat(s.pid).name))];
+    if(noAf.length)warns.push(`Falta nº de afiliado: ${noAf.map(esc).join(', ')}`);
+    for(const pid of new Set(list.map(s=>s.pid))){const p=pat(pid);if(p&&p.tope){const n=monthCount(pid,ym);if(n>p.tope)warns.push(`${esc(p.name)}: ${n} sesiones y el tope es ${p.tope}`)}}
+    return `<h3 class="sec">Por presentar · ${esc(capital(monthName(ym)))}</h3>
+    <div class="sub">${money(list.reduce((a,s)=>a+(+s.osAmt||0),0))} en ${list.length} ${list.length>1?'sesiones':'sesión'}${lim?` · límite ${shortDate(lim)} ${dl<0?'<span class="bad">(vencido)</span>':dl<=5?`<span class="warnt">(vence en ${dl} días)</span>`:`(en ${dl} días)`}`:''}</div>
+    ${warns.map(w=>`<div class="warnline">⚠ ${w}</div>`).join('')}
+    ${list.map(s=>osRow(s)).join('')}
+    <div class="row wrap" style="margin-top:8px"><button class="sm" data-act="csv" data-m="${ym}">Descargar planilla</button><button class="sec sm" data-act="presmonth" data-m="${ym}">Marcar presentado</button></div>`;
+  }).join('');
+  return `<div class="top"><button class="lnk" data-act="finback">‹ Plata</button><button class="lnk" data-act="editfin" data-id="${f.id}">Editar</button></div>
+  <h1 style="margin-top:12px" class="sm">${esc(f.name)}</h1>
+  <div class="sub">${money(f.fee)} por sesión${f.codigo?' · código '+esc(f.codigo):''}${f.diaLimite?' · presentar hasta el '+esc(f.diaLimite)+' del mes siguiente':''}${f.plazoPago?' · paga a '+esc(f.plazoPago)+' días':''}</div>
+  <div class="sub" style="margin-top:18px">Te debe esta obra social</div><div class="big">${money(st.total)}</div>
+  <div class="kpis"><div><div class="sub">Por presentar</div><b>${money(st.pend)}</b></div><div><div class="sub">Presentado</div><b>${money(st.pres)}</b></div><div><div class="sub">Débitos</div><b class="${st.deb?'bad':''}">${money(st.deb)}</b></div></div>
+  ${blocks||'<div class="empty">No hay sesiones por presentar.</div>'}
+  ${pres.length?`<h3 class="sec">Presentado, sin cobrar</h3>
+  ${pres.map(s=>{const d=s.presFecha?daysBetween(s.presFecha,t):0;const late=f.plazoPago&&d>f.plazoPago;
+    return osRow(s,`presentada ${s.presFecha?shortDate(s.presFecha):'—'} · <span class="${late?'bad':''}">${d} días${late?' (pasó el plazo)':''}</span>`)}).join('')}
+  <div style="margin-top:8px"><button class="sec sm" data-act="cobtodo">Marcar todo como cobrado</button></div>`:''}
+  ${deb.length?`<h3 class="sec">Débitos para reclamar</h3>${deb.map(s=>osRow(s,s.debMot?esc(s.debMot):'')).join('')}`:''}`;
+}
+
 function ajustesView(){
   const st=S.settings;
-  return `<h1>Ajustes</h1>
-  <div class="card"><label>Tu nombre (firma de los mensajes)</label><input value="${esc(st.name)}" data-chg="sname" placeholder="Lic. ...">
-  <div class="tog"><input type="checkbox" id="cl" data-chg="clate" ${st.chargeLate?'checked':''}><label for="cl" style="margin:0">Cobrar cancelación tardía</label></div>
-  <div class="tog"><input type="checkbox" id="ca" data-chg="cabs" ${st.chargeAbsent?'checked':''}><label for="ca" style="margin:0">Cobrar si falta sin avisar</label></div></div>
-  <div class="card"><b>Copia de seguridad</b><p class="mut">${S.settings.lastBackup?'Última copia: '+esc(S.settings.lastBackup.split('-').reverse().join('/'))+'.':'Todavía no hiciste ninguna copia.'}</p><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
-  <div class="row" style="flex-wrap:wrap"><button data-act="export">Descargar copia</button><button class="sec" data-act="import">Restaurar copia</button></div>
+  return `<div class="top"><button class="lnk" data-act="ajback">‹ Volver</button></div><h1 style="margin-top:12px">Ajustes</h1>
+  <div class="box"><label style="margin-top:0">Tu nombre (firma de los mensajes)</label><input value="${esc(st.name)}" data-chg="sname" placeholder="Lic. ...">
+  <div class="tog"><input type="checkbox" id="cl" data-chg="clate" ${st.chargeLate?'checked':''}><label for="cl">Cobrar cancelación tardía</label></div>
+  <div class="tog"><input type="checkbox" id="ca" data-chg="cabs" ${st.chargeAbsent?'checked':''}><label for="ca">Cobrar si falta sin avisar</label></div></div>
+  <h3 class="sec">Obras sociales y prepagas</h3>
+  ${S.fin.map(f=>`<div class="item" data-act="editfin" data-id="${f.id}"><div class="grow"><div>${esc(f.name)}</div><div class="sub">${money(f.fee)} por sesión${f.reqAuth?' · exige autorización':''}</div></div><span class="ok">Editar</span></div>`).join('')}
+  <div style="margin-top:8px"><button class="sec" data-act="newfin">+ Agregar obra social o prepaga</button></div>
+  <h3 class="sec">Copia de seguridad</h3>
+  <div class="box"><p class="mut" style="margin-top:0">${st.lastBackup?'Última copia: '+esc(st.lastBackup.split('-').reverse().join('/'))+'.':'Todavía no hiciste ninguna copia.'}</p><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
+  <div class="row wrap"><button data-act="export">Descargar copia</button><button class="sec" data-act="import">Restaurar copia</button></div>
   <input type="file" id="imp" accept=".json,application/json" hidden></div>
-  <div class="card"><div class="row" style="flex-wrap:wrap"><button class="sec" data-act="chpass">Cambiar clave</button><button class="sec" data-act="lock">Bloquear ahora</button></div></div>`;
+  <div class="row wrap" style="margin-top:14px"><button class="sec" data-act="chpass">Cambiar clave</button><button class="sec" data-act="lock">Bloquear ahora</button></div>`;
 }
+
 function modalView(){
   const m=ui.modal;let inner='';
-  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+`<option value="__new">+ Nueva obra social…</option>`;
+  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-osfee="${p.osFee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  const btns=(extra='')=>`<div class="btns"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div>${extra}`;
   if(m.t==='ses'){
     const e=m.id?S.sessions.find(x=>x.id===m.id):null;
     const p=e?pat(e.pid):m.pid?pat(m.pid):null;
-    inner=`<h1>${e?'Editar':'Nuevo'} turno</h1><form data-form="ses" data-id="${e?e.id:''}"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(e?e.pid:m.pid)}</select>
-    <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e?e.date:m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="${e?esc(e.time):'10:00'}" required></div></div>
-    <div class="grid2"><div><label>Valor</label><input type="number" name="fee" min="0" step="any" value="${e?e.fee:p?p.fee||0:''}" required></div>${e?'':'<div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div>'}</div>
-    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+    const hasOs=e?!!e.fid:!!(p&&p.fid);
+    const osf=`<div class="osf"${hasOs?'':' hidden'}><div class="grid2"><div><label>Paga la obra social</label><input type="number" name="osAmt" min="0" step="any" value="${e?(e.osAmt||0):p?p.osFee||0:0}"></div><div><label>Autorización / orden</label><input name="auth" value="${e?esc(e.auth):''}" placeholder="Nº"></div></div></div>`;
+    if(e&&p){
+      const msg=`Hola ${first(p)}, te recuerdo tu sesión del ${longDate(e.date)} a las ${e.time}. ¡Gracias!${sign()}`;
+      inner=`<h1 class="sm">${esc(p.name)}</h1><div class="sub">${esc(longDate(e.date))}</div>
+      <form data-form="ses" data-id="${e.id}"><div class="chips">${Object.entries(STATUS).map(([k,v])=>`<label><input type="radio" name="status" value="${k}"${e.status===k?' checked':''}><span>${v}</span></label>`).join('')}</div>
+      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e.date}" required></div><div><label>Hora</label><input type="time" name="time" value="${esc(e.time)}" required></div></div>
+      <label>Valor (lo que paga el paciente)</label><input type="number" name="fee" min="0" step="any" value="${e.fee}" required>
+      ${osf}${btns()}</form>
+      <div class="row sp">${waOk(p)?`<a class="btn lnk" target="_blank" rel="noopener" href="${waLink(p,msg)}">Recordar por WhatsApp</a>`:'<span></span>'}<button class="dng" data-act="delses" data-id="${e.id}">Borrar turno</button></div>`;
+    }else{
+      inner=`<h1 class="sm">Nuevo turno</h1><form data-form="ses"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
+      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="10:00" required></div></div>
+      <div class="grid2"><div><label>Valor (paciente)</label><input type="number" name="fee" min="0" step="any" value="${p?p.fee||0:''}" required></div><div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div></div>
+      ${osf}${btns()}</form>`;
+    }
   }else if(m.t==='pat'){
-    const p=m.id?pat(m.id):{};
-    inner=`<h1>${m.id?'Editar':'Nuevo'} paciente</h1><form data-form="pat" data-id="${m.id||''}">
+    const p={...(m.id?pat(m.id):{}),...(m.draft||{})};
+    inner=`<h1 class="sm">${m.id?'Editar':'Nuevo'} paciente</h1><form data-form="pat" data-id="${m.id||''}">
     <label>Nombre</label><input name="name" required value="${esc(p.name)}">
     <label>WhatsApp (ej: 11 2345 6789)</label><input name="phone" inputmode="tel" value="${esc(p.phone)}">
-    <div class="grid2"><div><label>Valor por sesión</label><input type="number" name="fee" min="0" step="any" value="${p.fee??''}" required></div><div><label>Obra social / particular</label><input name="os" value="${esc(p.os)}" placeholder="Particular"></div></div>
+    <div class="grid2"><div><label>Paga el paciente por sesión</label><input type="number" name="fee" min="0" step="any" value="${p.fee??''}" required></div><div><label>Obra social / prepaga</label><select name="fid" data-chg="pickfin">${finOpts(p.fid)}</select></div></div>
+    <div class="osf"${p.fid?'':' hidden'}><div class="grid2"><div><label>Paga la obra social por sesión</label><input type="number" name="osFee" min="0" step="any" value="${p.osFee??''}"></div><div><label>Nº de afiliado</label><input name="afil" value="${esc(p.afil)}"></div></div>
+    <label>Tope de sesiones por mes (opcional)</label><input type="number" name="tope" min="0" value="${p.tope||''}"></div>
     <label>Notas administrativas</label><textarea name="notes" rows="3" placeholder="Horario fijo, forma de pago, etc. (no pongas datos clínicos acá)">${esc(p.notes)}</textarea>
-    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+    ${btns()}</form>`;
+  }else if(m.t==='fin'){
+    const f=m.id?fin(m.id):{plazoPago:60};
+    const used=m.id?S.patients.filter(p=>p.fid===m.id).length:0;
+    inner=`<h1 class="sm">${m.id?'Editar':'Nueva'} obra social o prepaga</h1><form data-form="fin" data-id="${m.id||''}">
+    <label>Nombre</label><input name="name" required value="${esc(f.name)}" placeholder="Swiss Medical, OSDE, IOMA…">
+    <div class="grid2"><div><label>Valor por sesión que paga</label><input type="number" name="fee" min="0" step="any" value="${f.fee??''}" required></div><div><label>Código de práctica</label><input name="codigo" value="${esc(f.codigo)}" placeholder="Ej: 420101"></div></div>
+    <div class="grid2"><div><label>Presentar hasta el día (del mes siguiente)</label><input type="number" name="diaLimite" min="1" max="28" value="${f.diaLimite||''}" placeholder="Ej: 10"></div><div><label>Plazo de pago (días)</label><input type="number" name="plazoPago" min="0" value="${f.plazoPago??''}"></div></div>
+    <div class="tog"><input type="checkbox" name="reqAuth" id="ra"${f.reqAuth?' checked':''}><label for="ra">Exige autorización u orden por sesión</label></div>
+    <label>Notas (requisitos, contacto, portal)</label><textarea name="notes" rows="3">${esc(f.notes)}</textarea>
+    <p class="mut">Los requisitos cambian según la obra social: confirmá fechas y formatos en su instructivo de prestadores.</p>
+    ${btns()}</form>
+    ${m.id?(used?`<p class="mut">La usan ${used} paciente${used>1?'s':''}: no se puede eliminar.</p>`:`<button class="dng" data-act="delfin" data-id="${m.id}">Eliminar</button>`):''}`;
   }else if(m.t==='pay'){
     const b=m.pid?Math.max(0,balance(m.pid)):'';
-    inner=`<h1>Registrar cobro</h1><form data-form="pay"><label>Paciente</label><select name="pid" required data-chg="pickdebt">${patOpts(m.pid)}</select>
+    inner=`<h1 class="sm">Registrar cobro</h1><form data-form="pay"><label>Paciente</label><select name="pid" required data-chg="pickdebt">${patOpts(m.pid)}</select>
     <div class="grid2"><div><label>Monto</label><input type="number" name="amount" min="0" step="any" value="${b||''}" required></div><div><label>Fecha</label><input type="date" name="date" value="${today()}" required></div></div>
     <label>Medio</label><select name="method"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Otro</option></select>
-    <label>Nota (opcional)</label><input name="note">
-    <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+    <label>Nota (opcional)</label><input name="note">${btns()}</form>`;
   }else if(m.t==='pass'){
-    inner=`<h1>Cambiar clave</h1><form data-form="pass"><label>Clave nueva (mínimo 6 caracteres)</label><input type="password" name="p" minlength="6" required>
+    inner=`<h1 class="sm">Cambiar clave</h1><form data-form="pass"><label>Clave nueva (mínimo 6 caracteres)</label><input type="password" name="p" minlength="6" required>
     <label>Repetir</label><input type="password" name="p2" required><p class="err">${esc(ui.err)}</p>
-    <div class="row"><button>Cambiar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
+    <div class="btns"><button>Cambiar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
   }
   return `<div class="modal" data-act="bg"><div class="sheet">${inner}</div></div>`;
+}
+
+/* ---------- exportar / reclamos ---------- */
+function download(name,text,type){
+  const l=document.createElement('a');l.href=URL.createObjectURL(new Blob([text],{type}));l.download=name;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);
+}
+function planillaCsv(f,ym){
+  const list=S.sessions.filter(s=>s.fid===f.id&&osBill(s)&&s.osSt==='pend'&&s.date.startsWith(ym)).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const head=['Obra social / prepaga','Nº afiliado','Paciente','Fecha','Hora','Código de práctica','Autorización','Importe obra social','Copago paciente'];
+  const rows=list.map(s=>{const p=pat(s.pid)||{};return [f.name,p.afil||'',p.name||'',s.date.split('-').reverse().join('/'),s.time,f.codigo||'',s.auth||'',s.osAmt||0,s.fee||0]});
+  const tot=list.reduce((a,s)=>a+(+s.osAmt||0),0);
+  rows.push(['TOTAL','','','','','','',tot,'']);
+  const q=c=>'"'+String(c??'').replace(/"/g,'""')+'"';
+  return '\ufeff'+[head,...rows].map(r=>r.map(q).join(';')).join('\r\n');
+}
+function reclamoText(s){
+  const f=fin(s.fid),p=pat(s.pid)||{};
+  return `Solicito la revisión del débito aplicado a la siguiente prestación:\n\nPaciente: ${p.name||''}${p.afil?' (afiliado '+p.afil+')':''}\nFecha: ${s.date.split('-').reverse().join('/')} ${s.time}\n${s.auth?'Autorización: '+s.auth+'\n':''}Importe: ${money(s.osAmt)}\nPresentada el: ${s.presFecha?s.presFecha.split('-').reverse().join('/'):'—'}\nMotivo informado del débito: ${s.debMot||'sin especificar'}\n\nAdjunto la documentación respaldatoria. Quedo a disposición.${sign()}`;
 }
 
 /* ---------- eventos ---------- */
@@ -287,36 +470,62 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-act]');if(!t)return;
   const a=t.dataset.act,d=t.dataset;
   if(a==='bg'){if(e.target===t){ui.modal=null;render()}return}
-  if(a==='tab'){ui.tab=d.t==='aj'?'aj':d.t;ui.pid=null;ui.modal=null;ui.q='';ui.arch=false;render()}
+  if(a==='tab'){ui.tab=d.t;ui.pid=null;ui.fid=null;ui.modal=null;ui.q='';ui.arch=false;render();scrollTo(0,0)}
+  else if(a==='aj'){ui.prev=ui.tab;ui.tab='aj';ui.modal=null;render();scrollTo(0,0)}
+  else if(a==='ajback'){ui.tab=ui.prev&&ui.prev!=='aj'?ui.prev:'hoy';render()}
   else if(a==='day'){ui.date=d.n==='0'?today():addDays(ui.date,+d.n);render()}
   else if(a==='month'){ui.month=d.m;render()}
   else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
+  else if(a==='opensess'){ui.modal={t:'ses',id:d.id};render()}
+  else if(a==='tog'){const s=S.sessions.find(x=>x.id===d.id);if(s){s.status=s.status==='asistio'?'prog':'asistio';await go()}}
   else if(a==='newpat'){ui.modal={t:'pat'};render()}
   else if(a==='editpat'){ui.modal={t:'pat',id:d.id};render()}
   else if(a==='newpay'){ui.modal={t:'pay',pid:d.id||''};render()}
-  else if(a==='openpat'){ui.pid=d.id;render();scrollTo(0,0)}
+  else if(a==='openpat'){ui.tab='pac';ui.pid=d.id;render();scrollTo(0,0)}
   else if(a==='back'){ui.pid=null;render()}
   else if(a==='toggarch'){ui.arch=!ui.arch;ui.q='';render()}
   else if(a==='archpat'){const p=pat(d.id);if(p){p.archived=!p.archived;if(p.archived){ui.pid=null;ui.arch=false}await go()}}
   else if(a==='close'){ui.modal=null;render()}
-  else if(a==='editses'){ui.modal={t:'ses',id:d.id};render()}
   else if(a==='gopend'){const p=pending();if(p.length){ui.date=p[0].date;render();scrollTo(0,0)}}
   else if(a==='delses'){
     const s=S.sessions.find(x=>x.id===d.id);if(!s)return;
     const later=s.sid?S.sessions.filter(x=>x.sid===s.sid&&x.id!==s.id&&x.status==='prog'&&(x.date+x.time)>(s.date+s.time)):[];
     if(later.length&&confirm(`Este turno se repite. ¿Borrar este y los ${later.length} siguientes programados?\n\nAceptar = borrar este y los siguientes\nCancelar = elegir solo este`)){
-      const ids=new Set([s.id,...later.map(x=>x.id)]);S.sessions=S.sessions.filter(x=>!ids.has(x.id));await go();
-    }else if(confirm('¿Borrar solo este turno?')){S.sessions=S.sessions.filter(x=>x.id!==s.id);await go()}
+      const ids=new Set([s.id,...later.map(x=>x.id)]);S.sessions=S.sessions.filter(x=>!ids.has(x.id));ui.modal=null;await go();
+    }else if(confirm('¿Borrar solo este turno?')){S.sessions=S.sessions.filter(x=>x.id!==s.id);ui.modal=null;await go()}
   }
   else if(a==='delpay'){if(confirm('¿Borrar este cobro?')){S.payments=S.payments.filter(x=>x.id!==d.id);await go()}}
-  else if(a==='delpat'){if(confirm('¿Eliminar paciente con todas sus sesiones y cobros? No se puede deshacer.')){
+  else if(a==='delpat'){if(confirm('¿Eliminar paciente con todas sus sesiones y cobros? No se puede deshacer. (Archivarlo conserva el historial)')){
     S.sessions=S.sessions.filter(s=>s.pid!==d.id);S.payments=S.payments.filter(x=>x.pid!==d.id);S.patients=S.patients.filter(p=>p.id!==d.id);ui.pid=null;await go()}}
+  /* obras sociales */
+  else if(a==='newfin'){ui.modal={t:'fin'};render()}
+  else if(a==='editfin'){ui.modal={t:'fin',id:d.id};render()}
+  else if(a==='delfin'){if(confirm('¿Eliminar esta obra social?')){S.fin=S.fin.filter(f=>f.id!==d.id);ui.modal=null;ui.fid=null;await go()}}
+  else if(a==='openfin'){ui.fid=d.id;render();scrollTo(0,0)}
+  else if(a==='finback'){ui.fid=null;render()}
+  else if(a==='csv'){const f=fin(ui.fid);if(f)download(`planilla-${norm(f.name).replace(/\W+/g,'-')}-${d.m}.csv`,planillaCsv(f,d.m),'text/csv;charset=utf-8')}
+  else if(a==='presmonth'){
+    const f=fin(ui.fid);if(!f)return;
+    const list=S.sessions.filter(s=>s.fid===f.id&&osBill(s)&&s.osSt==='pend'&&s.date.startsWith(d.m));
+    const sinAut=f.reqAuth?list.filter(s=>!s.auth).length:0;
+    if(confirm(`¿Marcar ${list.length} ${list.length>1?'sesiones':'sesión'} de ${monthName(d.m)} como presentadas hoy?${sinAut?`\n\nOjo: ${sinAut} no tiene${sinAut>1?'n':''} autorización cargada.`:''}`)){
+      list.forEach(s=>{s.osSt='pres';s.presFecha=today();delete s.debMot});await go();
+    }
+  }
+  else if(a==='cobsess'){const s=S.sessions.find(x=>x.id===d.id);if(s){s.osSt='cobr';s.cobFecha=today();await go()}}
+  else if(a==='debsess'){const s=S.sessions.find(x=>x.id===d.id);if(s){const mot=prompt('Motivo del débito (opcional)');if(mot===null)return;s.osSt='deb';s.debMot=mot.trim();await go()}}
+  else if(a==='refact'){const s=S.sessions.find(x=>x.id===d.id);if(s){s.osSt='pend';delete s.presFecha;await go()}}
+  else if(a==='copyrec'){const s=S.sessions.find(x=>x.id===d.id);if(s){const txt=reclamoText(s);try{await navigator.clipboard.writeText(txt);alert('Texto del reclamo copiado.')}catch(_){prompt('Copiá el texto del reclamo:',txt)}}}
+  else if(a==='cobtodo'){
+    const f=fin(ui.fid);if(!f)return;
+    const list=S.sessions.filter(s=>s.fid===f.id&&osBill(s)&&s.osSt==='pres');
+    if(list.length&&confirm(`¿Marcar las ${list.length} sesiones presentadas de ${f.name} como cobradas hoy?`)){list.forEach(s=>{s.osSt='cobr';s.cobFecha=today()});await go()}
+  }
   else if(a==='lock'){lock()}
   else if(a==='chpass'){ui.err='';ui.modal={t:'pass'};render()}
   else if(a==='export'){
     S.settings.lastBackup=today();await save();
-    const blob=new Blob([localStorage.getItem(LS)],{type:'application/json'});
-    const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`consultorio-backup-${today()}.json`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);render();
+    download(`consultorio-backup-${today()}.json`,localStorage.getItem(LS),'application/json');render();
   }
   else if(a==='import'){document.getElementById('imp').click()}
 });
@@ -336,12 +545,29 @@ document.addEventListener('change',async e=>{
   }
   const c=t.dataset.chg;if(!c)return;
   if(c==='goto'&&t.value){ui.date=t.value;render()}
-  else if(c==='status'){const s=S.sessions.find(x=>x.id===t.dataset.id);if(s){s.status=t.value;await go()}}
   else if(c==='sname'){S.settings.name=t.value.trim();await save()}
   else if(c==='clate'){S.settings.chargeLate=t.checked;await save()}
   else if(c==='cabs'){S.settings.chargeAbsent=t.checked;await save()}
-  else if(c==='pickfee'){const f=t.form.elements.fee,o=t.selectedOptions[0];if(o&&o.dataset.fee)f.value=o.dataset.fee}
+  else if(c==='pickfee'){
+    const f=t.form,o=t.selectedOptions[0];
+    if(o&&o.value){f.elements.fee.value=o.dataset.fee||0;const box=f.querySelector('.osf');
+      if(box){box.hidden=!o.dataset.fid;f.elements.osAmt.value=o.dataset.osfee||0}}
+  }
   else if(c==='pickdebt'){if(t.value)t.form.elements.amount.value=Math.max(0,balance(t.value))||''}
+  else if(c==='pickfin'){
+    const f=t.form;
+    if(t.value==='__new'){
+      const name=(prompt('Nombre de la obra social o prepaga')||'').trim();
+      const draft=Object.fromEntries(new FormData(f));
+      if(!name){draft.fid='';ui.modal={t:'pat',id:f.dataset.id||'',draft};render();return}
+      const nf={id:uid(),name,fee:0,codigo:'',diaLimite:'',plazoPago:60,reqAuth:false,notes:''};
+      S.fin.push(nf);await save();draft.fid=nf.id;
+      ui.modal={t:'pat',id:f.dataset.id||'',draft};render();return;
+    }
+    const box=f.querySelector('.osf');if(box)box.hidden=!t.value;
+    const o=t.selectedOptions[0];
+    if(t.value&&!f.elements.osFee.value&&o&&+o.dataset.fee)f.elements.osFee.value=o.dataset.fee;
+  }
 });
 document.addEventListener('submit',async e=>{
   e.preventDefault();
@@ -356,17 +582,30 @@ document.addEventListener('submit',async e=>{
   }
   else if(k==='ses'){
     if(f.dataset.id){
-      const e=S.sessions.find(x=>x.id===f.dataset.id);
-      if(e)Object.assign(e,{pid:v.pid,date:v.date,time:v.time,fee:+v.fee||0});
+      const e2=S.sessions.find(x=>x.id===f.dataset.id);
+      if(e2){
+        Object.assign(e2,{status:v.status||e2.status,date:v.date,time:v.time,fee:+v.fee||0});
+        if(e2.fid){e2.osAmt=+v.osAmt||0;e2.auth=(v.auth||'').trim()}
+        ui.date=v.date;
+      }
+      ui.modal=null;await go();
     }else{
+      const p=pat(v.pid);if(!p)return;
       const n=Math.max(1,Math.min(52,+v.rep||1)),sid=n>1?uid():undefined;
-      for(let i=0;i<n;i++)S.sessions.push({id:uid(),...(sid?{sid}:{}),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0});
+      for(let i=0;i<n;i++)S.sessions.push({id:uid(),...(sid?{sid}:{}),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0,
+        ...(p.fid?{fid:p.fid,osAmt:+v.osAmt||0,osSt:'pend',auth:(v.auth||'').trim()}:{})});
+      ui.date=v.date;ui.modal=null;ui.tab='hoy';ui.pid=null;await go();
     }
-    ui.date=v.date;ui.modal=null;ui.tab='agenda';ui.pid=null;await go();
   }
   else if(k==='pat'){
-    const rec={name:v.name.trim(),phone:v.phone.trim(),fee:+v.fee||0,os:v.os.trim(),notes:v.notes.trim()};
+    const rec={name:v.name.trim(),phone:v.phone.trim(),fee:+v.fee||0,notes:v.notes.trim(),fid:v.fid||'',
+      osFee:v.fid?+v.osFee||0:0,afil:v.fid?(v.afil||'').trim():'',tope:v.fid?+v.tope||0:0};
     if(f.dataset.id)Object.assign(pat(f.dataset.id),rec);else S.patients.push({id:uid(),...rec});
+    ui.modal=null;await go();
+  }
+  else if(k==='fin'){
+    const rec={name:v.name.trim(),fee:+v.fee||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim()};
+    if(f.dataset.id)Object.assign(fin(f.dataset.id),rec);else S.fin.push({id:uid(),...rec});
     ui.modal=null;await go();
   }
   else if(k==='pay'){
@@ -378,7 +617,7 @@ document.addEventListener('submit',async e=>{
     SALT=crypto.getRandomValues(new Uint8Array(16));KEY=await deriveKey(v.p,SALT);ui.err='';ui.modal=null;await go();alert('Clave cambiada. Descargá una copia nueva: las anteriores usan la clave vieja.');
   }
 });
-function lock(){S=null;KEY=null;SALT=null;ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false};render()}
+function lock(){S=null;KEY=null;SALT=null;ui=freshUi();render()}
 let hiddenAt=0;const LOCK_MS=30000;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){hiddenAt=Date.now();return}

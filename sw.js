@@ -1,4 +1,4 @@
-const C = 'consultorio-v3';
+const C = 'consultorio-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

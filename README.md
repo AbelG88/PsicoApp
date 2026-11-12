@@ -6,18 +6,37 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 
 ## Qué hace
 
-- **Agenda:** turnos por día con estado (programado, asistió, canceló, canceló tarde, faltó). Se pueden editar, repetir semanalmente y borrar de a uno o con todos los siguientes de la serie. Los turnos pasados que quedaron sin cerrar se marcan y se avisa. Recordatorio por WhatsApp en un toque.
-- **Pacientes:** valor por sesión, obra social o particular, teléfono, notas administrativas y saldo. Buscador por nombre, obra social o teléfono, y opción de archivar a quien ya no viene (se oculta de las listas y de los turnos nuevos, pero conserva historial y deuda).
-- **Cobros y deudas:** registro de pagos (efectivo, transferencia, Mercado Pago), deuda por paciente y total, aviso de deuda por WhatsApp.
-- **Mes:** cobrado, facturado, proyectado y cantidad de sesiones por estado.
-- **Ajustes:** elegir si se cobra la cancelación tardía y la falta sin aviso, firma de los mensajes, copia de seguridad (con aviso si pasaron 15 días o más sin hacer una), cambio de clave.
+Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
+
+- **Hoy:** turnos del día. Un toque en el círculo marca que asistió; tocar el turno abre la hoja para cambiar estado, fecha, hora, valor, autorización, recordar por WhatsApp o borrarlo. Los turnos se pueden repetir semanalmente y borrar de a uno o con todos los siguientes de la serie. Los turnos pasados sin cerrar se marcan y se avisa.
+- **Pacientes:** buscador (nombre, obra social, teléfono), saldo, historial de sesiones y cobros, aviso de deuda por WhatsApp. Se pueden archivar: se ocultan de las listas y de los turnos nuevos, pero conservan historial y deuda.
+- **Plata:** cobrado, facturado, proyectado y deuda de pacientes del mes, y el estado de cada obra social.
+- **Obras sociales y prepagas** (lo que más cambió):
+  - Cada una tiene valor por sesión, código de práctica, día límite de presentación, plazo de pago y si exige autorización.
+  - Cada paciente tiene su obra social, nº de afiliado, lo que paga la obra social, el copago propio y un tope de sesiones por mes.
+  - Cada sesión asistida se sigue como **sin presentar → presentada → cobrada**, o **débito**.
+  - Antes de presentar avisa de autorizaciones faltantes, afiliados sin número, sesiones que pasan el tope y el vencimiento del mes.
+  - Descarga la planilla del mes en CSV (se abre en Excel), marca como presentado o cobrado, controla cuántos días pasaron desde la presentación y arma el texto del reclamo de un débito.
+- **Ajustes:** cobrar o no la cancelación tardía y la falta sin aviso, firma de los mensajes, obras sociales, copia de seguridad (con aviso si pasaron 15 días o más) y cambio de clave.
 
 ## Cómo se calculan los números
 
-- **Cobra una sesión** si el turno está en *Asistió*, o en *Canceló tarde* / *Faltó* cuando esa opción está activada en Ajustes. *Programado* y *Canceló* no se cobran.
-- **Saldo del paciente** = sesiones que se cobran − pagos registrados. Positivo es deuda, negativo es saldo a favor. Los pagos no se asignan a sesiones puntuales.
-- **Mes:** *Cobrado* suma los pagos con fecha del mes. *Facturado* suma las sesiones que se cobran del mes. *Proyectado* es facturado más los turnos todavía programados. No incluye deudas de meses anteriores.
-- Cada turno guarda su propio valor. Cambiar el valor del paciente no modifica los turnos ya cargados.
+- **Cobra una sesión al paciente** si el turno está en *Asistió*, o en *Canceló tarde* / *Faltó* cuando esa opción está activada en Ajustes. *Programado* y *Canceló* no se cobran.
+- **Saldo del paciente** = sesiones que se le cobran − pagos registrados. Positivo es deuda, negativo es saldo a favor. Para pacientes de obra social, lo que cobra el paciente es solo su copago.
+- **Obra social:** solo las sesiones *Asistió* se le facturan. Lo que debe la obra social es la suma de lo que paga por sesión (por presentar + presentado + débitos).
+- **Plata del mes:** *Cobrado* suma los pagos de pacientes y las sesiones que la obra social pagó ese mes. *Facturado* suma sesiones cobradas al paciente más lo facturado a obras sociales. *Proyectado* es facturado más los turnos todavía programados. *Te deben* es solo deuda de pacientes. Ninguno incluye deudas de meses anteriores.
+- Cada turno guarda su propio valor. Cambiar el valor del paciente o de la obra social no modifica los turnos ya cargados.
+
+## Qué piden las obras sociales
+
+Armé el módulo a partir de instructivos públicos de prestadores (IOMA, OSPe, OSIAD, OSPACP y otros). No encontré las reglas de OSDE, Swiss Medical ni Galeno para psicólogos, así que por eso cada financiador es configurable. Lo que se repite:
+
+- Orden médica o prescripción y, en general, **autorización previa**.
+- **Planilla de asistencia** con firma del paciente y del profesional, y en algunos casos planilla de evolución mensual.
+- Facturación **a mes vencido**, con fecha límite de presentación distinta en cada una (por ejemplo del 1 al 10, hasta el 15, o hasta 90 días en IOMA).
+- Topes de sesiones por mes o por autorización, y débitos por errores formales.
+
+Antes de usarlo con una obra social conviene confirmar sus fechas y formatos en su instructivo de prestadores. La planilla CSV es una base en formato genérico: cada obra social puede pedir su propio formato o un portal.
 
 ## Instalarla en el celular
 
@@ -50,10 +69,12 @@ Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://loc
 
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v1` → `consultorio-v2`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v4` → `consultorio-v5`).
 
 ## Limitaciones conocidas
 
+- La app no emite facturas electrónicas ni se conecta a los portales de las obras sociales: prepara la planilla y el control, y la presentación se hace por el canal de cada una.
+- No imprime ni arma la planilla de asistencia para firmar.
 - Al editar un turno repetido se cambia solo ese turno, no la serie.
 - Eliminar un paciente borra también sus sesiones y cobros: para conservar el historial conviene archivarlo.
 - Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
@@ -63,7 +84,8 @@ Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa 
 
 Ideas a futuro, por prioridad:
 
-1. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
-2. Recibos en PDF.
-3. Exportar a Excel y control de obras sociales.
-4. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
+1. Planilla de asistencia para firmar y PDF por obra social con el formato que pida cada una.
+2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
+3. Recibos en PDF y exportar todo a Excel.
+4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
+5. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
