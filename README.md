@@ -54,6 +54,7 @@ Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa 
 
 ## Limitaciones conocidas
 
+- Al editar un turno repetido se cambia solo ese turno, no la serie.
 - Eliminar un paciente borra también sus sesiones y cobros: para conservar el historial conviene archivarlo.
 - Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
 - Después de publicar una versión nueva, el celular puede mostrar la anterior hasta abrir la app una segunda vez (cache primero).
