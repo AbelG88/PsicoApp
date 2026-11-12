@@ -81,7 +81,7 @@ async function decryptObj(key,{iv,ct}){
 /* ---------- estado ---------- */
 let S=null,KEY=null,SALT=null;
 const blank=()=>({patients:[],sessions:[],payments:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:''}});
-let ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};
+let ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false};
 const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
 
 async function save(){
@@ -109,7 +109,18 @@ const pat=id=>S.patients.find(p=>p.id===id);
 const billed=pid=>S.sessions.filter(s=>s.pid===pid&&charged(s)).reduce((a,s)=>a+(+s.fee||0),0);
 const paid=pid=>S.payments.filter(p=>p.pid===pid).reduce((a,p)=>a+(+p.amount||0),0);
 const balance=pid=>billed(pid)-paid(pid);
-const waPhone=t=>{let d=String(t||'').replace(/\D/g,'').replace(/^0+/,'');if(d.length===10)d='549'+d;return d};
+const waPhone=t=>{
+  let d=String(t||'').replace(/\D/g,'').replace(/^0+/,'');
+  if(!d)return '';
+  const ar=d.startsWith('54')&&d.length>=12;
+  if(ar){d=d.slice(2);if(d.startsWith('9')&&d.length===11)d=d.slice(1)}
+  d=d.replace(/^0+/,'');
+  if(d.length===12){for(const a of [2,3,4]){if(d.substr(a,2)==='15'){d=d.slice(0,a)+d.slice(a+2);break}}}
+  if(d.length===10&&d.startsWith('15'))return ''; // celular sin código de área: no se puede armar el link
+  return d.length===10?'549'+d:(ar?'54'+d:d);
+};
+const waOk=p=>waPhone(p.phone).length>=11;
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const waLink=(p,msg)=>`https://wa.me/${waPhone(p.phone)}?text=${encodeURIComponent(msg)}`;
 const first=p=>p.name.trim().split(/\s+/)[0];
 const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/864e5);
@@ -156,17 +167,26 @@ function agendaView(){
    <span class="chip ${s.status}${s.status==='prog'&&s.date<today()?' late':''}">${s.status==='prog'&&s.date<today()?'Sin cerrar':STATUS[s.status]}</span></div>
    <div class="row" style="margin-top:8px;flex-wrap:wrap">
    <select data-chg="status" data-id="${s.id}" style="width:auto;flex:1">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${s.status===k?' selected':''}>${v}</option>`).join('')}</select>
-   ${p.phone?`<a class="btn sec sm" target="_blank" rel="noopener" href="${waLink(p,msg)}">WhatsApp</a>`:''}
+   ${waOk(p)?`<a class="btn sec sm" target="_blank" rel="noopener" href="${waLink(p,msg)}">WhatsApp</a>`:''}
    <button class="sec sm" data-act="editses" data-id="${s.id}">Editar</button><button class="dng sm" data-act="delses" data-id="${s.id}">Borrar</button></div></div>`}).join('')
    :`<div class="card mut">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}
   <button class="fab" data-act="newses">+ Turno</button>`;
 }
-function patientsView(){
-  const ps=[...S.patients].sort((a,b)=>a.name.localeCompare(b.name));
-  return `<h1>Pacientes</h1>${ps.length?ps.map(p=>{const b=balance(p.id);
+function patientListHtml(){
+  const q=norm(ui.q),qd=ui.q.replace(/\D/g,'');
+  const ps=S.patients.filter(p=>!!p.archived===ui.arch&&(!q||norm(p.name).includes(q)||norm(p.os).includes(q)||(qd.length>=3&&String(p.phone||'').replace(/\D/g,'').includes(qd)))).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!ps.length)return `<div class="card mut">${ui.q?'Ningún paciente coincide con la búsqueda.':ui.arch?'No hay pacientes archivados.':'Todavía no cargaste pacientes.'}</div>`;
+  return ps.map(p=>{const b=balance(p.id);
    return `<div class="card" data-act="openpat" data-id="${p.id}" style="cursor:pointer"><div class="row sp"><div class="grow"><b>${esc(p.name)}</b><div class="mut">${esc(p.os||'Particular')} · ${money(p.fee)}</div></div>
-   <div class="${b>0?'bad':'mut'}">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div></div></div>`}).join(''):'<div class="card mut">Todavía no cargaste pacientes.</div>'}
-  <button class="fab" data-act="newpat">+ Paciente</button>`;
+   <div class="${b>0?'bad':'mut'}">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div></div></div>`}).join('');
+}
+function patientsView(){
+  const na=S.patients.filter(p=>p.archived).length;
+  return `<h1>${ui.arch?'Pacientes archivados':'Pacientes'}</h1>
+  <input type="search" id="q" data-inp="q" value="${esc(ui.q)}" placeholder="Buscar por nombre, obra social o teléfono" autocomplete="off">
+  <div id="plist">${patientListHtml()}</div>
+  ${na||ui.arch?`<div style="margin-top:10px"><button class="sec sm" data-act="toggarch">${ui.arch?'‹ Volver a pacientes activos':`Ver archivados (${na})`}</button></div>`:''}
+  ${ui.arch?'':'<button class="fab" data-act="newpat">+ Paciente</button>'}`;
 }
 function patientView(){
   const p=pat(ui.pid);if(!p){ui.pid=null;return patientsView()}
@@ -175,17 +195,18 @@ function patientView(){
   const pays=S.payments.filter(x=>x.pid===p.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30);
   const debtMsg=`Hola ${first(p)}, te paso lo pendiente a la fecha: ${money(b)}. Cuando puedas me avisás. ¡Gracias!${sign()}`;
   return `<div class="row"><button class="sec sm" data-act="back">‹ Volver</button><h1 style="margin:0">${esc(p.name)}</h1></div>
-  <div class="card"><div class="mut">${esc(p.os||'Particular')} · ${money(p.fee)} por sesión${p.phone?' · '+esc(p.phone):''}</div>
+  <div class="card"><div class="mut">${p.archived?'<span class="chip">Archivado</span> ':''}${esc(p.os||'Particular')} · ${money(p.fee)} por sesión${p.phone?' · '+esc(p.phone):''}</div>
   ${p.notes?`<div style="margin-top:6px;white-space:pre-wrap">${esc(p.notes)}</div>`:''}
   <div class="big ${b>0?'bad':'ok'}" style="margin-top:8px">${b>0?'Debe '+money(b):b<0?'A favor '+money(-b):'Al día'}</div>
   <div class="row" style="margin-top:10px;flex-wrap:wrap">
   <button data-act="newpay" data-id="${p.id}">Registrar cobro</button>
   <button class="sec" data-act="newses" data-id="${p.id}">Turno</button>
-  ${b>0&&p.phone?`<a class="btn sec" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar deuda</a>`:''}
-  <button class="sec" data-act="editpat" data-id="${p.id}">Editar</button></div></div>
+  ${b>0&&waOk(p)?`<a class="btn sec" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar deuda</a>`:''}
+  <button class="sec" data-act="editpat" data-id="${p.id}">Editar</button>
+  <button class="sec" data-act="archpat" data-id="${p.id}">${p.archived?'Reactivar':'Archivar'}</button></div></div>
   <h2>Sesiones</h2>${ses.length?ses.map(s=>`<div class="card row sp"><div>${shortDate(s.date)} ${esc(s.time)}<div class="mut">${money(s.fee)}</div></div><span class="chip ${s.status}">${STATUS[s.status]}</span></div>`).join(''):'<div class="mut">Sin sesiones.</div>'}
   <h2>Cobros</h2>${pays.length?pays.map(x=>`<div class="card row sp"><div>${shortDate(x.date)} · ${esc(x.method||'')}<div class="mut">${esc(x.note||'')}</div></div><div class="row"><b class="ok">${money(x.amount)}</b><button class="dng sm" data-act="delpay" data-id="${x.id}">✕</button></div></div>`).join(''):'<div class="mut">Sin cobros.</div>'}
-  <div style="margin-top:20px"><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>`;
+  <p class="mut" style="margin-top:20px">Archivar oculta al paciente de las listas y de los turnos nuevos, pero conserva su historial y su deuda.</p><div><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>`;
 }
 function cobrosView(){
   const rows=S.patients.map(p=>({p,b:balance(p.id)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b);
@@ -229,7 +250,7 @@ function ajustesView(){
 }
 function modalView(){
   const m=ui.modal;let inner='';
-  const patOpts=sel=>`<option value="">— elegir —</option>`+[...S.patients].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
   if(m.t==='ses'){
     const e=m.id?S.sessions.find(x=>x.id===m.id):null;
     const p=e?pat(e.pid):m.pid?pat(m.pid):null;
@@ -266,7 +287,7 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-act]');if(!t)return;
   const a=t.dataset.act,d=t.dataset;
   if(a==='bg'){if(e.target===t){ui.modal=null;render()}return}
-  if(a==='tab'){ui.tab=d.t==='aj'?'aj':d.t;ui.pid=null;ui.modal=null;render()}
+  if(a==='tab'){ui.tab=d.t==='aj'?'aj':d.t;ui.pid=null;ui.modal=null;ui.q='';ui.arch=false;render()}
   else if(a==='day'){ui.date=d.n==='0'?today():addDays(ui.date,+d.n);render()}
   else if(a==='month'){ui.month=d.m;render()}
   else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
@@ -275,6 +296,8 @@ document.addEventListener('click',async e=>{
   else if(a==='newpay'){ui.modal={t:'pay',pid:d.id||''};render()}
   else if(a==='openpat'){ui.pid=d.id;render();scrollTo(0,0)}
   else if(a==='back'){ui.pid=null;render()}
+  else if(a==='toggarch'){ui.arch=!ui.arch;ui.q='';render()}
+  else if(a==='archpat'){const p=pat(d.id);if(p){p.archived=!p.archived;if(p.archived){ui.pid=null;ui.arch=false}await go()}}
   else if(a==='close'){ui.modal=null;render()}
   else if(a==='editses'){ui.modal={t:'ses',id:d.id};render()}
   else if(a==='gopend'){const p=pending();if(p.length){ui.date=p[0].date;render();scrollTo(0,0)}}
@@ -296,6 +319,9 @@ document.addEventListener('click',async e=>{
     const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`consultorio-backup-${today()}.json`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);render();
   }
   else if(a==='import'){document.getElementById('imp').click()}
+});
+document.addEventListener('input',e=>{
+  if(e.target.dataset.inp==='q'){ui.q=e.target.value;const l=document.getElementById('plist');if(l)l.innerHTML=patientListHtml()}
 });
 document.addEventListener('change',async e=>{
   const t=e.target;
@@ -352,7 +378,7 @@ document.addEventListener('submit',async e=>{
     SALT=crypto.getRandomValues(new Uint8Array(16));KEY=await deriveKey(v.p,SALT);ui.err='';ui.modal=null;await go();alert('Clave cambiada. Descargá una copia nueva: las anteriores usan la clave vieja.');
   }
 });
-function lock(){S=null;KEY=null;SALT=null;ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};render()}
+function lock(){S=null;KEY=null;SALT=null;ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false};render()}
 let hiddenAt=0;const LOCK_MS=30000;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){hiddenAt=Date.now();return}
