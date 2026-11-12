@@ -6,11 +6,11 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 
 ## Qué hace
 
-- **Agenda:** turnos por día con estado (programado, asistió, canceló, canceló tarde, faltó). Se pueden repetir semanalmente. Recordatorio por WhatsApp en un toque.
+- **Agenda:** turnos por día con estado (programado, asistió, canceló, canceló tarde, faltó). Se pueden editar, repetir semanalmente y borrar de a uno o con todos los siguientes de la serie. Los turnos pasados que quedaron sin cerrar se marcan y se avisa. Recordatorio por WhatsApp en un toque.
 - **Pacientes:** valor por sesión, obra social o particular, teléfono, notas administrativas y saldo.
 - **Cobros y deudas:** registro de pagos (efectivo, transferencia, Mercado Pago), deuda por paciente y total, aviso de deuda por WhatsApp.
 - **Mes:** cobrado, facturado, proyectado y cantidad de sesiones por estado.
-- **Ajustes:** elegir si se cobra la cancelación tardía y la falta sin aviso, firma de los mensajes, copia de seguridad, cambio de clave.
+- **Ajustes:** elegir si se cobra la cancelación tardía y la falta sin aviso, firma de los mensajes, copia de seguridad (con aviso si pasaron 15 días o más sin hacer una), cambio de clave.
 
 ## Cómo se calculan los números
 
@@ -29,7 +29,7 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 
 - Los datos se guardan **solo en el teléfono**, cifrados con la clave (AES-GCM, clave derivada con PBKDF2). No hay servidor ni base de datos.
 - Este repositorio contiene únicamente el código. Nunca hay datos de pacientes acá.
-- La app se bloquea sola al salir a otra aplicación (por ejemplo, al abrir WhatsApp). Lo que estaba sin guardar en un formulario se pierde.
+- La app se bloquea sola si se sale a otra aplicación más de 30 segundos. Un salto corto (por ejemplo, a WhatsApp) no la bloquea.
 - El número de teléfono se usa tal cual para armar el link de WhatsApp. Con 10 dígitos se asume Argentina (+54 9).
 - **No hay recuperación de clave.** Si se olvida, los datos no se pueden abrir.
 - **Si se borran los datos del navegador o se pierde el celular, se pierde todo.** Descargar una copia de seguridad seguido (Ajustes → Descargar copia) y guardarla en Drive o enviarla por mail. El archivo está cifrado con la clave que tenía al momento de descargarlo.
@@ -54,9 +54,8 @@ Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa 
 
 ## Limitaciones conocidas
 
-- Un turno no se puede editar (fecha, hora o valor): hay que borrarlo y crearlo de nuevo. Los turnos repetidos se borran de a uno.
 - No hay búsqueda de pacientes ni forma de archivarlos. Eliminar un paciente borra también sus sesiones y cobros.
-- Un turno pasado que quedó en *Programado* no se marca de ninguna forma.
+- Al editar un turno repetido se cambia solo ese turno, no la serie.
 - Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
 - Después de publicar una versión nueva, el celular puede mostrar la anterior hasta abrir la app una segunda vez (cache primero).
 
@@ -64,9 +63,9 @@ Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa 
 
 Ideas a futuro, por prioridad:
 
-1. Editar turnos y borrar una serie completa.
-2. Aviso de turnos pasados sin estado y recordatorio de hacer copia de seguridad.
-3. Buscador y archivo de pacientes.
+1. Buscador y archivo de pacientes.
+2. Mejor manejo de teléfonos (`011 15…`, `+54`).
+3. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
 4. Recibos en PDF.
 5. Exportar a Excel y control de obras sociales.
 6. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).

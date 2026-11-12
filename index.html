@@ -27,6 +27,7 @@ button.sm,.btn.sm{padding:6px 10px;font-size:.88rem}
 input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink)}
 label{display:block;font-size:.85rem;color:var(--mut);margin:10px 0 4px}
 .chip{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
+.chip.prog.late{background:#fbefd5;color:#8a5a0b}.banner{background:var(--pri2);color:var(--ink);border-radius:var(--r);padding:10px 12px;margin:8px 0}.banner.warn{background:#fbefd5;color:#6b4a0c}.banner .row{margin-top:8px;flex-wrap:wrap}
 .chip.asistio{background:#dff1e8;color:#1f6b4a}.chip.falto,.chip.cancelo_tarde{background:#f8e3e3;color:#9b2f2f}.chip.cancelo{background:#eee;color:#666}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}
 nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:10px 2px;font-size:.78rem}
@@ -79,7 +80,7 @@ async function decryptObj(key,{iv,ct}){
 
 /* ---------- estado ---------- */
 let S=null,KEY=null,SALT=null;
-const blank=()=>({patients:[],sessions:[],payments:[],settings:{name:'',chargeLate:true,chargeAbsent:true}});
+const blank=()=>({patients:[],sessions:[],payments:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:''}});
 let ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};
 const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
 
@@ -111,6 +112,9 @@ const balance=pid=>billed(pid)-paid(pid);
 const waPhone=t=>{let d=String(t||'').replace(/\D/g,'').replace(/^0+/,'');if(d.length===10)d='549'+d;return d};
 const waLink=(p,msg)=>`https://wa.me/${waPhone(p.phone)}?text=${encodeURIComponent(msg)}`;
 const first=p=>p.name.trim().split(/\s+/)[0];
+const daysBetween=(a,b)=>Math.round((new Date(b+'T12:00')-new Date(a+'T12:00'))/864e5);
+const pending=()=>S.sessions.filter(s=>s.status==='prog'&&s.date<today()).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+const backupAge=()=>S.settings.lastBackup?daysBetween(S.settings.lastBackup,today()):null;
 const sign=()=>S.settings.name?`\n${S.settings.name}`:'';
 
 /* ---------- vistas ---------- */
@@ -137,7 +141,11 @@ function lockView(){
 function agendaView(){
   const list=S.sessions.filter(s=>s.date===ui.date).sort((a,b)=>a.time.localeCompare(b.time));
   const isToday=ui.date===today();
+  const pend=pending(),age=backupAge();
+  const pendBanner=pend.length?`<div class="banner warn">Tenés <b>${pend.length}</b> turno${pend.length>1?'s':''} pasado${pend.length>1?'s':''} sin cerrar (siguen como "Programado" y no se cuentan).<div class="row"><button class="sm" data-act="gopend">Revisar</button></div></div>`:'';
+  const bkBanner=S.patients.length&&(age===null||age>=15)?`<div class="banner">${age===null?'Todavía no descargaste ninguna copia de seguridad.':`Hace <b>${age}</b> días que no descargás una copia de seguridad.`}<div class="row"><button class="sm" data-act="export">Descargar copia</button></div></div>`:'';
   return `<h1>${esc(longDate(ui.date))}</h1>
+  ${pendBanner}${bkBanner}
   <div class="row"><button class="sec sm" data-act="day" data-n="-1">‹</button>
   <button class="sec sm" data-act="day" data-n="0">Hoy</button>
   <button class="sec sm" data-act="day" data-n="1">›</button>
@@ -145,11 +153,11 @@ function agendaView(){
   ${list.length?list.map(s=>{const p=pat(s.pid);if(!p)return'';
    const msg=`Hola ${first(p)}, te recuerdo tu sesión del ${longDate(s.date)} a las ${s.time}. ¡Gracias!${sign()}`;
    return `<div class="card"><div class="row sp"><div class="grow"><b>${esc(s.time)}</b> · ${esc(p.name)}<div class="mut">${money(s.fee)}</div></div>
-   <span class="chip ${s.status}">${STATUS[s.status]}</span></div>
+   <span class="chip ${s.status}${s.status==='prog'&&s.date<today()?' late':''}">${s.status==='prog'&&s.date<today()?'Sin cerrar':STATUS[s.status]}</span></div>
    <div class="row" style="margin-top:8px;flex-wrap:wrap">
    <select data-chg="status" data-id="${s.id}" style="width:auto;flex:1">${Object.entries(STATUS).map(([k,v])=>`<option value="${k}"${s.status===k?' selected':''}>${v}</option>`).join('')}</select>
    ${p.phone?`<a class="btn sec sm" target="_blank" rel="noopener" href="${waLink(p,msg)}">WhatsApp</a>`:''}
-   <button class="dng sm" data-act="delses" data-id="${s.id}">Borrar</button></div></div>`}).join('')
+   <button class="sec sm" data-act="editses" data-id="${s.id}">Editar</button><button class="dng sm" data-act="delses" data-id="${s.id}">Borrar</button></div></div>`}).join('')
    :`<div class="card mut">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}
   <button class="fab" data-act="newses">+ Turno</button>`;
 }
@@ -214,7 +222,7 @@ function ajustesView(){
   <div class="card"><label>Tu nombre (firma de los mensajes)</label><input value="${esc(st.name)}" data-chg="sname" placeholder="Lic. ...">
   <div class="tog"><input type="checkbox" id="cl" data-chg="clate" ${st.chargeLate?'checked':''}><label for="cl" style="margin:0">Cobrar cancelación tardía</label></div>
   <div class="tog"><input type="checkbox" id="ca" data-chg="cabs" ${st.chargeAbsent?'checked':''}><label for="ca" style="margin:0">Cobrar si falta sin avisar</label></div></div>
-  <div class="card"><b>Copia de seguridad</b><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
+  <div class="card"><b>Copia de seguridad</b><p class="mut">${S.settings.lastBackup?'Última copia: '+esc(S.settings.lastBackup.split('-').reverse().join('/'))+'.':'Todavía no hiciste ninguna copia.'}</p><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
   <div class="row" style="flex-wrap:wrap"><button data-act="export">Descargar copia</button><button class="sec" data-act="import">Restaurar copia</button></div>
   <input type="file" id="imp" accept=".json,application/json" hidden></div>
   <div class="card"><div class="row" style="flex-wrap:wrap"><button class="sec" data-act="chpass">Cambiar clave</button><button class="sec" data-act="lock">Bloquear ahora</button></div></div>`;
@@ -223,10 +231,11 @@ function modalView(){
   const m=ui.modal;let inner='';
   const patOpts=sel=>`<option value="">— elegir —</option>`+[...S.patients].sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
   if(m.t==='ses'){
-    const p=m.pid?pat(m.pid):null;
-    inner=`<h1>Nuevo turno</h1><form data-form="ses"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
-    <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="10:00" required></div></div>
-    <div class="grid2"><div><label>Valor</label><input type="number" name="fee" min="0" step="any" value="${p?p.fee||0:''}" required></div><div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div></div>
+    const e=m.id?S.sessions.find(x=>x.id===m.id):null;
+    const p=e?pat(e.pid):m.pid?pat(m.pid):null;
+    inner=`<h1>${e?'Editar':'Nuevo'} turno</h1><form data-form="ses" data-id="${e?e.id:''}"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(e?e.pid:m.pid)}</select>
+    <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e?e.date:m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="${e?esc(e.time):'10:00'}" required></div></div>
+    <div class="grid2"><div><label>Valor</label><input type="number" name="fee" min="0" step="any" value="${e?e.fee:p?p.fee||0:''}" required></div>${e?'':'<div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div>'}</div>
     <div class="row" style="margin-top:16px"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div></form>`;
   }else if(m.t==='pat'){
     const p=m.id?pat(m.id):{};
@@ -267,15 +276,24 @@ document.addEventListener('click',async e=>{
   else if(a==='openpat'){ui.pid=d.id;render();scrollTo(0,0)}
   else if(a==='back'){ui.pid=null;render()}
   else if(a==='close'){ui.modal=null;render()}
-  else if(a==='delses'){if(confirm('¿Borrar este turno?')){S.sessions=S.sessions.filter(s=>s.id!==d.id);await go()}}
+  else if(a==='editses'){ui.modal={t:'ses',id:d.id};render()}
+  else if(a==='gopend'){const p=pending();if(p.length){ui.date=p[0].date;render();scrollTo(0,0)}}
+  else if(a==='delses'){
+    const s=S.sessions.find(x=>x.id===d.id);if(!s)return;
+    const later=s.sid?S.sessions.filter(x=>x.sid===s.sid&&x.id!==s.id&&x.status==='prog'&&(x.date+x.time)>(s.date+s.time)):[];
+    if(later.length&&confirm(`Este turno se repite. ¿Borrar este y los ${later.length} siguientes programados?\n\nAceptar = borrar este y los siguientes\nCancelar = elegir solo este`)){
+      const ids=new Set([s.id,...later.map(x=>x.id)]);S.sessions=S.sessions.filter(x=>!ids.has(x.id));await go();
+    }else if(confirm('¿Borrar solo este turno?')){S.sessions=S.sessions.filter(x=>x.id!==s.id);await go()}
+  }
   else if(a==='delpay'){if(confirm('¿Borrar este cobro?')){S.payments=S.payments.filter(x=>x.id!==d.id);await go()}}
   else if(a==='delpat'){if(confirm('¿Eliminar paciente con todas sus sesiones y cobros? No se puede deshacer.')){
     S.sessions=S.sessions.filter(s=>s.pid!==d.id);S.payments=S.payments.filter(x=>x.pid!==d.id);S.patients=S.patients.filter(p=>p.id!==d.id);ui.pid=null;await go()}}
   else if(a==='lock'){lock()}
   else if(a==='chpass'){ui.err='';ui.modal={t:'pass'};render()}
   else if(a==='export'){
+    S.settings.lastBackup=today();await save();
     const blob=new Blob([localStorage.getItem(LS)],{type:'application/json'});
-    const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`consultorio-backup-${today()}.json`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);
+    const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`consultorio-backup-${today()}.json`;l.click();setTimeout(()=>URL.revokeObjectURL(l.href),1000);render();
   }
   else if(a==='import'){document.getElementById('imp').click()}
 });
@@ -311,8 +329,13 @@ document.addEventListener('submit',async e=>{
     }catch(_){ui.err='No se pudo abrir (¿datos dañados?)';render()}
   }
   else if(k==='ses'){
-    const n=Math.max(1,Math.min(52,+v.rep||1));
-    for(let i=0;i<n;i++)S.sessions.push({id:uid(),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0});
+    if(f.dataset.id){
+      const e=S.sessions.find(x=>x.id===f.dataset.id);
+      if(e)Object.assign(e,{pid:v.pid,date:v.date,time:v.time,fee:+v.fee||0});
+    }else{
+      const n=Math.max(1,Math.min(52,+v.rep||1)),sid=n>1?uid():undefined;
+      for(let i=0;i<n;i++)S.sessions.push({id:uid(),...(sid?{sid}:{}),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0});
+    }
     ui.date=v.date;ui.modal=null;ui.tab='agenda';ui.pid=null;await go();
   }
   else if(k==='pat'){
@@ -330,7 +353,12 @@ document.addEventListener('submit',async e=>{
   }
 });
 function lock(){S=null;KEY=null;SALT=null;ui={locked:true,tab:'agenda',date:today(),pid:null,month:today().slice(0,7),modal:null,err:''};render()}
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&!ui.locked)lock()});
+let hiddenAt=0;const LOCK_MS=30000;
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){hiddenAt=Date.now();return}
+  if(!ui.locked&&hiddenAt&&Date.now()-hiddenAt>LOCK_MS)lock();
+  hiddenAt=0;
+});
 
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();
