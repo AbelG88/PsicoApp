@@ -62,6 +62,15 @@ details.more summary::-webkit-details-marker{display:none}details.more[open] sum
 #toast{position:fixed;left:16px;right:16px;bottom:158px;max-width:608px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;z-index:20;box-shadow:0 6px 20px #0004;font-size:.95rem}
 #toast.show{display:flex}
 #toast button{background:none;color:var(--bg);text-decoration:underline;padding:4px 6px;font-weight:650}
+.mon .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px}
+.mh{text-align:center;font-size:.72rem;color:var(--mut);padding:2px 0}
+.mc{background:none;color:var(--ink);padding:5px 0 4px;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;font-weight:500}
+.mc b{font-size:.98rem;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:600}
+.mc i{font-style:normal;display:flex;gap:2px;height:7px;align-items:center;font-size:.65rem;color:var(--mut)}
+.mc.td b{box-shadow:inset 0 0 0 1.5px var(--pri)}.mc.sel b{background:var(--pri);color:var(--onpri);box-shadow:none}
+.d{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--pri)}
+.d.pg{background:#b8c0bb}.d.late{background:var(--warn)}.d.bd{background:var(--bad)}.d.cx{background:none;box-shadow:inset 0 0 0 1.5px #aab2ad}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.75rem;color:var(--mut);margin-top:8px}
 .tag{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
 .banner{background:var(--pri2);border-radius:var(--r);padding:12px 14px;margin:14px 0}
 .banner.warn{background:var(--warnbg);color:var(--warn)}
@@ -131,8 +140,8 @@ async function decryptObj(key,{iv,ct}){
 
 /* ---------- estado ---------- */
 let S=null,KEY=null,SALT=null;
-const blank=()=>({patients:[],sessions:[],payments:[],fin:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:'',montos:[],montosInit:false,lastMethod:''}});
-const freshUi=()=>({locked:true,tab:'hoy',prev:'hoy',date:today(),pid:null,fid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false});
+const blank=()=>({patients:[],sessions:[],payments:[],fin:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:'',montos:[],montosInit:false,lastMethod:'',matricula:'',cuit:'',alias:''}});
+const freshUi=()=>({locked:true,tab:'hoy',prev:'hoy',date:today(),pid:null,fid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false,cal:'sem',rep:null});
 let ui=freshUi();
 const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
 const OSLAB={pend:'Sin presentar',pres:'Presentada',cobr:'Cobrada por la obra social',deb:'Débito'};
@@ -259,6 +268,52 @@ function applyPatient(f){
   if(f.elements.rep&&o.dataset.rep&&[...f.elements.rep.options].some(x=>x.value===o.dataset.rep))f.elements.rep.value=o.dataset.rep;
   syncPills(f,'fee');syncPills(f,'osAmt');updSum(f);
 }
+const addMonths=(s0,n)=>{const d=new Date(s0+'T12:00'),day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));return dstr(d)};
+/* deuda por sesión: los pagos se aplican a las sesiones más viejas primero */
+function debtInfo(pid){
+  let rest=paid(pid);const open=[];
+  const ss=S.sessions.filter(x=>x.pid===pid&&charged(x)&&(+x.fee||0)>0).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  for(const x of ss){const f=+x.fee;if(rest>=f)rest-=f;else{open.push({s:x,due:f-rest});rest=0}}
+  const total=open.reduce((a,o)=>a+o.due,0);
+  return {total,open,oldest:open.length?open[0].s.date:null};
+}
+const toneFor=age=>age>=60?'formal':age>=30?'recordatorio':'amable';
+const TONES={amable:'Amable',recordatorio:'Recordatorio',formal:'Formal'};
+function debtMsg(p,info,tone){
+  const lista=info.open.slice(0,8).map(o=>`• ${shortDate(o.s.date)}: ${money(o.due)}`).join('\n')+(info.open.length>8?`\n• y ${info.open.length-8} más`:'');
+  const alias=S.settings.alias?`\nPodés transferir a: ${S.settings.alias}`:'';
+  if(tone==='formal')return `Hola ${first(p)}, te escribo nuevamente por el saldo pendiente de ${money(info.total)} (sesiones desde el ${info.oldest.split('-').reverse().join('/')}).\n${lista}${alias}\nTe pido que podamos regularizarlo en estos días. Si te resulta más cómodo, coordinamos una forma de pago en cuotas. Quedo a tu disposición.${sign()}`;
+  if(tone==='recordatorio')return `Hola ${first(p)}, te recuerdo que figuran pendientes de pago las siguientes sesiones:\n${lista}\nTotal: ${money(info.total)}.${alias}\nSi ya lo abonaste, avisame así actualizo mi registro. ¡Gracias!${sign()}`;
+  return `Hola ${first(p)}, ¿cómo estás? Te paso el detalle de las sesiones pendientes de pago:\n${lista}\nTotal: ${money(info.total)}.${alias}\nCuando puedas me avisás. ¡Gracias!${sign()}`;
+}
+const finCfg=f=>({formato:f.pFormato||'paciente',hora:f.pHora!==false,dni:f.pDni!==false,auth:f.pAuth??!!f.reqAuth,codigo:!!f.pCodigo});
+function planillaHtml(f,ym){
+  const c=finCfg(f);
+  const list=S.sessions.filter(x=>x.fid===f.id&&x.status==='asistio'&&x.osSt&&x.date.startsWith(ym)).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const prof=[S.settings.name?'Profesional: '+esc(S.settings.name):'',S.settings.matricula?'Matrícula: '+esc(S.settings.matricula):'',S.settings.cuit?'CUIT: '+esc(S.settings.cuit):''].filter(Boolean).join(' · ')||'Profesional: ____________________';
+  const th=(extra)=>`<th>N°</th><th>Fecha</th>${c.hora?'<th>Hora</th>':''}${extra}${c.auth?'<th>Autorización</th>':''}${c.codigo?'<th>Código</th>':''}<th class="w">Firma del afiliado</th><th>Aclaración${c.dni?' y DNI':''}</th>`;
+  const row=(x,i,extra)=>{const p=pat(x.pid)||{};return `<tr><td>${i+1}</td><td>${x.date.split('-').reverse().join('/')}</td>${c.hora?`<td>${esc(x.time)}</td>`:''}${extra(p)}${c.auth?`<td>${esc(x.auth)}</td>`:''}${c.codigo?`<td>${esc(f.codigo)}</td>`:''}<td></td><td>${c.dni&&p.dni?esc(p.dni):''}</td></tr>`};
+  const foot=n=>`<div class="foot"><span>Total de sesiones: <b>${n}</b></span><span class="sig">Firma y sello del profesional</span></div>`;
+  let body='';
+  if(c.formato==='listado'){
+    body=`<section><h1>Planilla de asistencia · ${esc(f.name)}</h1><div class="meta">Período: ${esc(capital(monthName(ym)))} · ${prof}</div>
+    <table><thead><tr>${th('<th>Afiliado</th><th>Nº afiliado</th>')}</tr></thead><tbody>${list.map((x,i)=>row(x,i,p=>`<td>${esc(p.name)}</td><td>${esc(p.afil)}</td>`)).join('')}</tbody></table>${foot(list.length)}</section>`;
+  }else{
+    const pids=[...new Set(list.map(x=>x.pid))];
+    body=pids.map(pid=>{const p=pat(pid)||{},l=list.filter(x=>x.pid===pid);
+      return `<section class="pb"><h1>Planilla de asistencia · ${esc(f.name)}</h1><div class="meta">Período: ${esc(capital(monthName(ym)))} · ${prof}</div>
+      <div class="meta"><b>Afiliado:</b> ${esc(p.name)} · <b>Nº de afiliado:</b> ${esc(p.afil)||'__________'}${c.dni?` · <b>DNI:</b> ${esc(p.dni)||'__________'}`:''}</div>
+      <table><thead><tr>${th('')}</tr></thead><tbody>${l.map((x,i)=>row(x,i,()=>'')).join('')}</tbody></table>${foot(l.length)}</section>`}).join('');
+  }
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Planilla de asistencia ${esc(f.name)} ${esc(ym)}</title>
+<style>@page{size:A4;margin:14mm}body{font:13px/1.4 Arial,sans-serif;color:#000;margin:16px}h1{font-size:17px;margin:0 0 4px}.meta{margin:2px 0 8px;font-size:12px}
+table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #333;padding:7px 5px;font-size:12px;height:30px;text-align:left;vertical-align:middle}th{background:#eee}th.w{width:28%}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;font-size:12px}.sig{border-top:1px solid #000;padding-top:4px;min-width:200px;text-align:center}
+.pb{page-break-after:always}.pb:last-child{page-break-after:auto}.bar{margin-bottom:14px;padding:10px;background:#f1f1f1;border-radius:8px;font-family:Arial}.bar button{font-size:15px;padding:8px 14px}
+@media print{.bar{display:none}body{margin:0}}</style></head><body>
+<div class="bar"><button onclick="print()">Imprimir / Guardar como PDF</button> <span style="font-size:12px">Revisá que coincida con el modelo que pide la obra social.</span></div>
+${list.length?body:'<p>No hay sesiones asistidas de esta obra social en este mes.</p>'}</body></html>`;
+}
 const owes=b=>b>0?`Debe ${money(b)}`:b<0?`A favor ${money(-b)}`:'Al día';
 
 /* ---------- vistas ---------- */
@@ -269,7 +324,7 @@ function render(){
   if(ui.tab==='aj')body=ajustesView();
   else if(ui.tab==='hoy')body=hoyView();
   else if(ui.tab==='pac')body=ui.pid?patientView():patientsView();
-  else body=ui.fid?finView():plataView();
+  else body=ui.fid?finView():ui.rep?repView():plataView();
   const tabs=[['hoy','Hoy'],['pac','Pacientes'],['plata','Plata']];
   if(ui.modal)hideToast();
   app.innerHTML=body+`<nav>${tabs.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</nav>`+(ui.modal?modalView():'');
@@ -314,6 +369,21 @@ function recentPats(){
   for(const x of S.sessions)if(x.date>=since)cnt[x.pid]=(cnt[x.pid]||0)+1;
   return S.patients.filter(p=>!p.archived&&cnt[p.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,6);
 }
+function monthGrid(){
+  const ym=ui.date.slice(0,7),dow=(new Date(ym+'-01T12:00').getDay()+6)%7;
+  const dim=new Date(+ym.slice(0,4),+ym.slice(5,7),0).getDate();
+  const cells=[...Array(dow).fill(null),...Array.from({length:dim},(_,i)=>ym+'-'+pad(i+1))];
+  const by={},all=S.sessions.filter(x=>x.date.startsWith(ym));
+  all.forEach(x=>(by[x.date]=by[x.date]||[]).push(x));
+  const cls=x=>x.status==='asistio'?'':x.status==='prog'?(x.date<today()?' late':' pg'):x.status==='cancelo'?' cx':' bd';
+  const n=k=>all.filter(x=>x.status===k).length,late=all.filter(x=>x.status==='prog'&&x.date<today()).length;
+  return `<div class="mon"><div class="row sp" style="margin-top:12px"><button class="icon" data-act="mon" data-n="-1" aria-label="Mes anterior">‹</button><b>${esc(capital(monthName(ym)))}</b><button class="icon" data-act="mon" data-n="1" aria-label="Mes siguiente">›</button></div>
+  <div class="mgrid">${['L','M','M','J','V','S','D'].map(l=>`<span class="mh">${l}</span>`).join('')}${cells.map(ds=>{
+    if(!ds)return '<span></span>';const l=by[ds]||[];
+    return `<button class="mc${ds===ui.date?' sel':''}${ds===today()?' td':''}" data-act="goday" data-d="${ds}" aria-label="${esc(longDate(ds))}"><b>${+ds.slice(8)}</b><i>${l.slice(0,4).map(x=>`<u class="d${cls(x)}"></u>`).join('')}${l.length>4?'+':''}</i></button>`}).join('')}</div>
+  <div class="legend"><span><u class="d"></u> asistió</span><span><u class="d pg"></u> programado</span><span><u class="d late"></u> sin cerrar</span><span><u class="d cx"></u> canceló</span><span><u class="d bd"></u> faltó / canceló tarde</span></div>
+  <div class="sub" style="margin-top:8px">${all.length} turno${all.length===1?'':'s'} en el mes · ${n('asistio')} asistió · ${n('prog')-late} programados${late?` · <span class="warnt">${late} sin cerrar</span>`:''}</div></div>`;
+}
 function hoyView(){
   const list=S.sessions.filter(s=>s.date===ui.date).sort((a,b)=>a.time.localeCompare(b.time));
   const isToday=ui.date===today();
@@ -328,10 +398,10 @@ function hoyView(){
     <div class="grow"><div>${esc(p.name)}</div><div class="sub${late?' warnt':''}">${money(s.fee)}${s.osAmt?' + OS '+money(s.osAmt):''} · ${statusLabel(s)}</div>${s.status==='asistio'&&balance(p.id)>0?`<div style="margin-top:6px"><button type="button" class="pill" data-act="cobrarrow" data-pid="${p.id}">Cobrar ${money(balance(p.id))}</button></div>`:''}</div>
     <button class="chk${s.status==='asistio'?' on':''}" data-act="tog" data-id="${s.id}" aria-label="Marcar asistió">${CHECK}</button></div>`}).join('');
   return `<div class="top"><div><h1>${isToday?'Hoy':esc(capital(dayName(ui.date)))}</h1>
-  <div class="sub">${n} turno${n===1?'':'s'}${n?` · ${m?m+' por marcar':'todo marcado'}`:''}</div></div>${gearBtn}</div>
+  <div class="sub">${n} turno${n===1?'':'s'}${n?` · ${m?m+' por marcar':'todo marcado'}`:''}</div></div><div class="row"><button class="lnk" data-act="cal">${ui.cal==='mes'?'Ver semana':'Ver mes'}</button>${gearBtn}</div></div>
   ${pendBanner}${renBanner}${bkBanner}
-  ${weekStrip()}
-  <div class="row sp" style="margin:4px 0 2px"><label class="dlabel" style="text-align:left">${esc(capital(longDate(ui.date)))} ▾<input type="date" value="${ui.date}" data-chg="goto"></label>${isToday?'':'<button class="lnk" data-act="day" data-n="0">Hoy</button>'}</div>
+  ${ui.cal==='mes'?monthGrid():weekStrip()}
+  <div class="row sp" style="margin:4px 0 2px"><label class="dlabel" style="text-align:left">${esc(capital(longDate(ui.date)))} ▾<input type="date" value="${ui.date}" data-chg="goto"></label><span>${isToday?'':'<button class="lnk" data-act="day" data-n="0">Hoy</button>'}</span></div>
   <div>${rows||`<div class="empty">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}</div>
   <button class="fab" data-act="newses" aria-label="Nuevo turno">+</button>`;
 }
@@ -359,7 +429,7 @@ function patientView(){
     ...S.sessions.filter(s=>s.pid===p.id).map(s=>({d:s.date,t:s.time,s})),
     ...S.payments.filter(x=>x.pid===p.id).map(x=>({d:x.date,t:'99:99',x}))
   ].sort((a,b)=>(b.d+b.t).localeCompare(a.d+a.t)).slice(0,50);
-  const debtMsg=`Hola ${first(p)}, te paso lo pendiente a la fecha: ${money(b)}. Cuando puedas me avisás. ¡Gracias!${sign()}`;
+  const dinfo=debtInfo(p.id),dmsg=b>0&&dinfo.total>0?debtMsg(p,dinfo,toneFor(daysBetween(dinfo.oldest,today()))):'';
   const cnt=p.tope?monthCount(p.id,today().slice(0,7)):0;
   const info=[finName(p),p.fid&&p.afil?'afil. '+esc(p.afil):'',money(p.fee)+' por sesión',p.phone?esc(p.phone):''].filter(Boolean).join(' · ');
   return `<div class="top"><button class="lnk" data-act="back">‹ Pacientes</button><button class="lnk" data-act="editpat" data-id="${p.id}">Editar</button></div>
@@ -370,7 +440,7 @@ function patientView(){
   <div class="sub" style="margin-top:22px">${b<0?'A favor':'Debe'}</div>
   <div class="big ${b>0?'bad':''}">${money(Math.abs(b))}</div>
   <div class="btns"><button data-act="newpay" data-id="${p.id}">Cobrar</button><button class="sec" data-act="newses" data-id="${p.id}">Turno</button></div>
-  ${b>0&&waOk(p)?`<a class="btn lnk" style="padding-left:0" target="_blank" rel="noopener" href="${waLink(p,debtMsg)}">Avisar la deuda por WhatsApp</a>`:''}
+  ${b>0&&waOk(p)?`<a class="btn lnk" style="padding-left:0" target="_blank" rel="noopener" href="${waLink(p,dmsg)}">Avisar la deuda por WhatsApp</a>`:''}
   <h3 class="sec">Historial</h3>
   ${hist.length?hist.map(h=>h.s?sessionHist(h.s):`<div class="item" data-act="delpay" data-id="${h.x.id}"><div class="time">${shortDate(h.x.date)}</div><div class="grow"><div>Cobro</div><div class="sub">${esc(h.x.method||'')}${h.x.note?' · '+esc(h.x.note):''}</div></div><div class="ok">${money(h.x.amount)}</div></div>`).join(''):'<div class="empty">Sin movimientos.</div>'}
   <div class="row sp" style="margin-top:26px"><button class="lnk" data-act="archpat" data-id="${p.id}">${p.archived?'Reactivar paciente':'Archivar paciente'}</button><button class="dng" data-act="delpat" data-id="${p.id}">Eliminar paciente</button></div>
@@ -403,7 +473,7 @@ function plataView(){
   <div class="sub" style="margin-top:12px">Cobrado en el mes</div><div class="big">${money(cob)}</div>
   <div class="kpis"><div><div class="sub">Facturado</div><b>${money(fact)}</b></div><div><div class="sub">Proyectado</div><b>${money(fact+prog)}</b></div><div><div class="sub">Te deben</div><b class="${deuda>0?'bad':''}">${money(deuda)}</b></div></div>
   <p class="mut">Proyectado = facturado + turnos todavía programados del mes. Te deben = deuda de pacientes. No incluye deudas de meses anteriores ni lo que deben las obras sociales.</p>
-  <h3 class="sec">Deudas</h3>
+  <div class="row sp"><h3 class="sec" style="margin-bottom:0">Deudas</h3><button class="lnk" data-act="openrep">Reporte y reclamos ›</button></div>
   ${rows.length?rows.map(({p,b})=>`<div class="item" data-act="openpat" data-id="${p.id}"><div class="grow"><div>${esc(p.name)}</div><div class="sub">Debe ${money(b)}</div></div><button class="lnk" data-act="newpay" data-id="${p.id}">Cobrar</button></div>`).join(''):'<div class="empty">Nadie debe nada.</div>'}
   <h3 class="sec">Obras sociales${osTotal>0?` · te deben ${money(osTotal)}`:''}</h3>
   ${fins.length?fins.map(({f,st})=>`<div class="item" data-act="openfin" data-id="${f.id}"><div class="grow"><div>${esc(f.name)}</div><div class="sub">${st.nPend?`Por presentar ${money(st.pend)} · `:''}${st.nPres?`Presentado ${money(st.pres)} · `:''}${st.nDeb?`<span class="bad">Débitos ${money(st.deb)}</span> · `:''}${st.total?'':'Sin movimientos · '}${money(f.fee)} por sesión</div></div><div class="${st.total?'':'mut'}">${money(st.total)}</div></div>`).join(''):'<div class="empty">Todavía no cargaste obras sociales o prepagas.<br><button class="lnk" data-act="newfin">Agregar una</button></div>'}
@@ -420,6 +490,35 @@ function osRow(s,extra){
   <div class="grow" data-act="opensess" data-id="${s.id}"><div>${esc(p.name)}</div><div class="sub">${p.afil?'Afil. '+esc(p.afil)+' · ':''}${s.auth?'Aut. '+esc(s.auth):''}${warn?'<span class="warnt">Falta autorización</span>':''}${extra?(s.auth||warn||p.afil?' · ':'')+extra:''}</div></div>
   <div>${money(s.osAmt)}</div>${s.osSt==='pres'?`<div class="row" style="width:100%;justify-content:flex-end"><button class="sec sm" data-act="cobsess" data-id="${s.id}">Cobrada</button><button class="sec sm" data-act="debsess" data-id="${s.id}">Débito</button></div>`:''}
   ${s.osSt==='deb'?`<div class="row" style="width:100%;justify-content:flex-end"><button class="sec sm" data-act="refact" data-id="${s.id}">Refacturar</button><button class="sec sm" data-act="copyrec" data-id="${s.id}">Copiar reclamo</button></div>`:''}</div>`;
+}
+function repRows(){
+  const r=ui.rep,t=today();
+  return S.patients.map(p=>({p,info:debtInfo(p.id)})).filter(x=>x.info.total>0).map(x=>({...x,age:daysBetween(x.info.oldest,t)})).filter(({p,info,age})=>{
+    if(age<r.age||info.total<r.min)return false;
+    if(r.fid==='part'&&p.fid)return false;
+    if(r.fid&&r.fid!=='part'&&p.fid!==r.fid)return false;
+    if(r.norem&&p.lastRem&&daysBetween(p.lastRem,t)<7)return false;
+    return true;
+  }).sort(r.sort==='antig'?(a,b)=>b.age-a.age:(a,b)=>b.info.total-a.info.total);
+}
+function repView(){
+  const r=ui.rep,rows=repRows(),t=today(),tot=rows.reduce((a,x)=>a+x.info.total,0);
+  const pill=(k,v,l)=>`<button type="button" class="pill${r[k]===v?' on':''}" data-act="repset" data-k="${k}" data-v="${v}">${l}</button>`;
+  const mins=topMontos(4);
+  return `<div class="top"><button class="lnk" data-act="repback">‹ Plata</button><button class="lnk" data-act="csvrep">Descargar lista</button></div>
+  <h1 class="sm" style="margin-top:12px">Reporte de deudas</h1>
+  <div class="sub">${rows.length} paciente${rows.length===1?'':'s'} · ${money(tot)}</div>
+  <label>Antigüedad de la deuda</label><div class="pills">${[[0,'Todas'],[15,'+15 días'],[30,'+30 días'],[60,'+60 días'],[90,'+90 días']].map(([v,l])=>pill('age',v,l)).join('')}</div>
+  <label>Monto mínimo</label><div class="pills">${pill('min',0,'Cualquiera')}${mins.map(v=>pill('min',v,'Desde '+money(v))).join('')}</div>
+  <div class="grid2"><div><label>Obra social</label><select data-chg="repsel" name="fid"><option value="">Todos</option><option value="part"${r.fid==='part'?' selected':''}>Particulares</option>${S.fin.map(f=>`<option value="${f.id}"${r.fid===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></div>
+  <div><label>Ordenar por</label><select data-chg="repsel" name="sort"><option value="monto">Mayor deuda</option><option value="antig"${r.sort==='antig'?' selected':''}>Más antigua</option></select></div></div>
+  <label>Tono del mensaje</label><select data-chg="repsel" name="tone"><option value="auto">Automático según antigüedad</option>${Object.entries(TONES).map(([k,v])=>`<option value="${k}"${r.tone===k?' selected':''}>${v}</option>`).join('')}</select>
+  <div class="tog"><input type="checkbox" id="rn" data-chg="repnorem"${r.norem?' checked':''}><label for="rn">Ocultar a quienes avisé en los últimos 7 días</label></div>
+  ${rows.length?rows.map(({p,info,age})=>{const tone=r.tone==='auto'?toneFor(age):r.tone;
+    return `<div class="box"><div class="row sp"><div class="grow"><b>${esc(p.name)}</b>${p.archived?' <span class="tag">Archivado</span>':''}<div class="sub">${info.open.length} XX · desde ${shortDate(info.oldest)} · hace ${age} día${age===1?'':'s'}${p.fid?' · '+esc(finName(p)):''}</div>
+    ${p.lastRem?`<div class="sub">Último aviso: hace ${daysBetween(p.lastRem,t)} día${daysBetween(p.lastRem,t)===1?'':'s'}${p.nRem>1?' ('+p.nRem+' avisos)':''}</div>`:''}</div><div class="med bad">${money(info.total)}</div></div>
+    <div class="row wrap" style="margin-top:10px">${waOk(p)?`<a class="btn sm" data-act="avisado" data-id="${p.id}" target="_blank" rel="noopener" href="${waLink(p,debtMsg(p,info,tone))}">Avisar · ${TONES[tone]}</a>`:''}<button class="sec sm" data-act="copymsg" data-id="${p.id}">Copiar mensaje</button><button class="sec sm" data-act="newpay" data-id="${p.id}">Cobrar</button></div></div>`}).join(''):'<div class="empty">Ningún paciente coincide con estos filtros.</div>'}
+  <p class="mut">Los pagos se aplican a las sesiones más viejas primero. El mensaje detalla las sesiones pendientes y usa tu alias si lo cargaste en Ajustes.</p>`;
 }
 function finView(){
   const f=fin(ui.fid);if(!f){ui.fid=null;return plataView()}
@@ -452,6 +551,11 @@ function finView(){
   <div class="sub">${money(f.fee)} por sesión${f.codigo?' · código '+esc(f.codigo):''}${f.diaLimite?' · presentar hasta el '+esc(f.diaLimite)+' del mes siguiente':''}${f.plazoPago?' · paga a '+esc(f.plazoPago)+' días':''}</div>
   <div class="sub" style="margin-top:18px">Te debe esta obra social</div><div class="big">${money(st.total)}</div>
   <div class="kpis"><div><div class="sub">Por presentar</div><b>${money(st.pend)}</b></div><div><div class="sub">Presentado</div><b>${money(st.pres)}</b></div><div><div class="sub">Débitos</div><b class="${st.deb?'bad':''}">${money(st.deb)}</b></div></div>
+  <h3 class="sec">Planilla de asistencia</h3>
+  ${(()=>{const ms=[...new Set(bill.map(x=>x.date.slice(0,7)))].sort().reverse().slice(0,6);
+    return `<div class="pills">${ms.map(m=>`<button type="button" class="pill" data-act="planilla" data-m="${m}">${esc(capital(monthName(m)))}</button>`).join('')||'<span class="mut">Todavía no hay sesiones asistidas.</span>'}</div>
+    ${f.modeloUrl?`<a class="btn lnk" style="padding-left:0" href="${esc(f.modeloUrl)}" target="_blank" rel="noopener">Abrir el modelo oficial de ${esc(f.name)}</a>`:''}
+    <p class="mut">Genera una planilla para firmar con el formato que configuraste. Cada obra social tiene su propio modelo y muchas exigen el suyo: si es tu caso, cargá el link del modelo oficial al editarla.</p>`})()}
   ${blocks||'<div class="empty">No hay sesiones por presentar.</div>'}
   ${pres.length?`<h3 class="sec">Presentado, sin cobrar</h3>
   ${pres.map(s=>{const d=s.presFecha?daysBetween(s.presFecha,t):0;const late=f.plazoPago&&d>f.plazoPago;
@@ -466,6 +570,10 @@ function ajustesView(){
   <div class="box"><label style="margin-top:0">Tu nombre (firma de los mensajes)</label><input value="${esc(st.name)}" data-chg="sname" placeholder="Lic. ...">
   <div class="tog"><input type="checkbox" id="cl" data-chg="clate" ${st.chargeLate?'checked':''}><label for="cl">Cobrar cancelación tardía</label></div>
   <div class="tog"><input type="checkbox" id="ca" data-chg="cabs" ${st.chargeAbsent?'checked':''}><label for="ca">Cobrar si falta sin avisar</label></div></div>
+  <h3 class="sec">Tus datos para planillas y mensajes</h3>
+  <div class="box"><label style="margin-top:0">Matrícula</label><input value="${esc(st.matricula)}" data-chg="smat" placeholder="MN / MP">
+  <label>CUIT</label><input value="${esc(st.cuit)}" data-chg="scuit" inputmode="numeric">
+  <label>Alias o CBU (aparece en los mensajes de deuda)</label><input value="${esc(st.alias)}" data-chg="salias" placeholder="tu.alias.mp"></div>
   <h3 class="sec">Obras sociales y prepagas</h3>
   ${S.fin.map(f=>`<div class="item" data-act="editfin" data-id="${f.id}"><div class="grow"><div>${esc(f.name)}</div><div class="sub">${money(f.fee)} por sesión${f.reqAuth?' · exige autorización':''}</div></div><span class="ok">Editar</span></div>`).join('')}
   <div style="margin-top:8px"><button class="sec" data-act="newfin">+ Agregar obra social o prepaga</button></div>
@@ -518,7 +626,8 @@ function modalView(){
     ${amountField('fee','Paga el paciente por sesión',p.fee,[],true)}
     <label>Obra social / prepaga</label><select name="fid" data-chg="pickfin">${finOpts(p.fid)}</select>
     <div class="osf"${p.fid?'':' hidden'}>${amountField('osFee','Paga la obra social por sesión',p.osFee)}
-    <div class="grid2"><div><label>Nº de afiliado</label><input name="afil" value="${esc(p.afil)}"></div><div><label>Tope de sesiones por mes</label><input type="number" name="tope" min="0" value="${p.tope||''}" placeholder="Opcional"></div></div></div>
+    <div class="grid2"><div><label>Nº de afiliado</label><input name="afil" value="${esc(p.afil)}"></div><div><label>DNI</label><input name="dni" inputmode="numeric" value="${esc(p.dni)}"></div></div>
+    <label>Tope de sesiones por mes</label><input type="number" name="tope" min="0" value="${p.tope||''}" placeholder="Opcional"></div>
     <details class="more"${p.notes?' open':''}><summary>+ Notas administrativas</summary><textarea name="notes" rows="3" placeholder="Horario fijo, forma de pago, etc. (no pongas datos clínicos acá)">${esc(p.notes)}</textarea></details>
     ${btns()}</form>`;
   }else if(m.t==='fin'){
@@ -531,6 +640,13 @@ function modalView(){
     <div class="grid2"><div><label>Código de práctica</label><input name="codigo" value="${esc(f.codigo)}" placeholder="Ej: 420101"></div><div><label>Presentar hasta el día</label><select name="diaLimite"><option value="">Sin límite</option>${[5,8,10,15,20,25].map(n=>`<option value="${n}"${+f.diaLimite===n?' selected':''}>${n} del mes siguiente</option>`).join('')}${f.diaLimite&&![5,8,10,15,20,25].includes(+f.diaLimite)?`<option value="${f.diaLimite}" selected>${f.diaLimite} del mes siguiente</option>`:''}</select></div></div>
     <label>Plazo de pago</label><select name="plazoPago">${[30,45,60,90,120].map(n=>`<option value="${n}"${+f.plazoPago===n?' selected':''}>${n} días</option>`).join('')}</select>
     <div class="tog"><input type="checkbox" name="reqAuth" id="ra"${f.reqAuth?' checked':''}><label for="ra">Exige autorización u orden por sesión</label></div>
+    <details class="more"><summary>+ Planilla de asistencia</summary>
+    <label>Formato</label><select name="pFormato"><option value="paciente">Una hoja por paciente</option><option value="listado"${f.pFormato==='listado'?' selected':''}>Listado del mes con todos los pacientes</option></select>
+    <div class="tog"><input type="checkbox" name="pHora" id="ph"${f.pHora!==false?' checked':''}><label for="ph">Columna de hora</label></div>
+    <div class="tog"><input type="checkbox" name="pDni" id="pd"${f.pDni!==false?' checked':''}><label for="pd">Aclaración y DNI del afiliado</label></div>
+    <div class="tog"><input type="checkbox" name="pAuth" id="pa"${(f.pAuth??!!f.reqAuth)?' checked':''}><label for="pa">Columna de autorización</label></div>
+    <div class="tog"><input type="checkbox" name="pCodigo" id="pc"${f.pCodigo?' checked':''}><label for="pc">Columna de código de práctica</label></div>
+    <label>Link al modelo oficial (si exigen el suyo)</label><input type="url" name="modeloUrl" value="${esc(f.modeloUrl)}" placeholder="https://…"></details>
     <details class="more"${f.notes?' open':''}><summary>+ Notas (requisitos, contacto, portal)</summary><textarea name="notes" rows="3">${esc(f.notes)}</textarea></details>
     <p class="mut">Los requisitos cambian según la obra social: confirmá fechas y formatos en su instructivo de prestadores.</p>
     ${btns()}</form>
@@ -586,13 +702,36 @@ document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-act]');if(!t)return;
   const a=t.dataset.act,d=t.dataset;
   if(a==='bg'){if(e.target===t){ui.modal=null;render()}return}
-  if(a==='tab'){ui.tab=d.t;ui.pid=null;ui.fid=null;ui.modal=null;ui.q='';ui.arch=false;render();scrollTo(0,0)}
+  if(a==='tab'){ui.tab=d.t;ui.pid=null;ui.fid=null;ui.rep=null;ui.modal=null;ui.q='';ui.arch=false;render();scrollTo(0,0)}
   else if(a==='aj'){ui.prev=ui.tab;ui.tab='aj';ui.modal=null;render();scrollTo(0,0)}
   else if(a==='ajback'){ui.tab=ui.prev&&ui.prev!=='aj'?ui.prev:'hoy';render()}
   else if(a==='day'){ui.date=d.n==='0'?today():addDays(ui.date,+d.n);render()}
   else if(a==='month'){ui.month=d.m;render()}
   else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
   else if(a==='opensess'){ui.modal={t:'ses',id:d.id};render()}
+  else if(a==='cal'){ui.cal=ui.cal==='mes'?'sem':'mes';render()}
+  else if(a==='mon'){ui.date=addMonths(ui.date,+d.n);render()}
+  else if(a==='openrep'){ui.rep={age:0,min:0,fid:'',norem:false,sort:'monto',tone:'auto'};render();scrollTo(0,0)}
+  else if(a==='repback'){ui.rep=null;render()}
+  else if(a==='repset'){ui.rep[d.k]=+d.v;render()}
+  else if(a==='avisado'){const p=pat(d.id);if(p){p.lastRem=today();p.nRem=(p.nRem||0)+1;setTimeout(go,400)}}
+  else if(a==='copymsg'){
+    const p=pat(d.id);if(!p)return;const info=debtInfo(p.id);if(info.total<=0)return;
+    const age=daysBetween(info.oldest,today()),txt=debtMsg(p,info,ui.rep&&ui.rep.tone!=='auto'?ui.rep.tone:toneFor(age));
+    try{await navigator.clipboard.writeText(txt);toast('Mensaje copiado')}catch(_){prompt('Copiá el mensaje:',txt)}
+  }
+  else if(a==='csvrep'){
+    const rows=repRows(),t=today(),q=c=>'"'+String(c??'').replace(/"/g,'""')+'"';
+    const head=['Paciente','Teléfono','Obra social','Deuda','Sesiones pendientes','Deuda desde','Días de antigüedad','Último aviso'];
+    const body=rows.map(({p,info,age})=>[p.name,p.phone||'',finName(p),info.total,info.open.length,info.oldest,age,p.lastRem||'']);
+    download(`deudas-${t}.csv`,'\ufeff'+[head,...body].map(r=>r.map(q).join(';')).join('\r\n'),'text/csv;charset=utf-8');
+  }
+  else if(a==='planilla'){
+    const f=fin(ui.fid);if(!f)return;
+    const html=planillaHtml(f,d.m),w=window.open('','_blank');
+    if(w){w.document.open();w.document.write(html);w.document.close()}
+    else download(`planilla-${norm(f.name).replace(/\W+/g,'-')}-${d.m}.html`,html,'text/html;charset=utf-8');
+  }
   else if(a==='goday'){ui.date=d.d;render()}
   else if(a==='pickpat'){const f=t.closest('form');f.elements.pid.value=d.id;applyPatient(f)}
   else if(a==='undo'){const u=undoFn;hideToast();if(u)await u()}
@@ -691,6 +830,11 @@ document.addEventListener('change',async e=>{
   const c=t.dataset.chg;if(!c)return;
   if(c==='goto'&&t.value){ui.date=t.value;render()}
   else if(c==='sname'){S.settings.name=t.value.trim();await save()}
+  else if(c==='smat'){S.settings.matricula=t.value.trim();await save()}
+  else if(c==='scuit'){S.settings.cuit=t.value.trim();await save()}
+  else if(c==='salias'){S.settings.alias=t.value.trim();await save()}
+  else if(c==='repsel'){ui.rep[t.name]=t.value;render()}
+  else if(c==='repnorem'){ui.rep.norem=t.checked;render()}
   else if(c==='clate'){S.settings.chargeLate=t.checked;await save()}
   else if(c==='cabs'){S.settings.chargeAbsent=t.checked;await save()}
   else if(c==='pickfee'){applyPatient(t.form)}
@@ -759,13 +903,13 @@ document.addEventListener('submit',async e=>{
   }
   else if(k==='pat'){
     const rec={name:v.name.trim(),phone:v.phone.trim(),fee:+v.fee||0,notes:v.notes.trim(),fid:v.fid||'',
-      osFee:v.fid?+v.osFee||0:0,afil:v.fid?(v.afil||'').trim():'',tope:v.fid?+v.tope||0:0};
+      osFee:v.fid?+v.osFee||0:0,afil:v.fid?(v.afil||'').trim():'',dni:v.fid?(v.dni||'').trim():'',tope:v.fid?+v.tope||0:0};
     learn(rec.fee,rec.osFee);
     if(f.dataset.id)Object.assign(pat(f.dataset.id),rec);else S.patients.push({id:uid(),...rec});
     ui.modal=null;await go();
   }
   else if(k==='fin'){
-    const rec={name:v.name.trim(),fee:+v.fee||0,copago:+v.copago||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim()};
+    const rec={name:v.name.trim(),fee:+v.fee||0,copago:+v.copago||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim(),pFormato:v.pFormato||'paciente',pHora:v.pHora==='on',pDni:v.pDni==='on',pAuth:v.pAuth==='on',pCodigo:v.pCodigo==='on',modeloUrl:(v.modeloUrl||'').trim()};
     learn(rec.fee,rec.copago);
     if(f.dataset.id)Object.assign(fin(f.dataset.id),rec);else S.fin.push({id:uid(),...rec});
     ui.modal=null;await go();
