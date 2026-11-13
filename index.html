@@ -47,6 +47,11 @@ label{display:block;font-size:.82rem;color:var(--mut);margin:12px 0 5px}
 .chips input{position:absolute;opacity:0;pointer-events:none;width:0}
 .chips span{display:inline-block;padding:8px 14px;border-radius:99px;background:var(--pri2);color:var(--pri);font-weight:550;cursor:pointer}
 .chips input:checked+span{background:var(--pri);color:var(--onpri)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.pill{padding:6px 12px;border-radius:99px;background:var(--pri2);color:var(--pri);font-size:.88rem;font-weight:550}
+.pill.on{background:var(--pri);color:var(--onpri)}
+details.more{margin:14px 0 4px}details.more summary{cursor:pointer;color:var(--pri);font-weight:550;list-style:none;padding:4px 0}
+details.more summary::-webkit-details-marker{display:none}details.more[open] summary{margin-bottom:6px}
 .tag{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
 .banner{background:var(--pri2);border-radius:var(--r);padding:12px 14px;margin:14px 0}
 .banner.warn{background:var(--warnbg);color:var(--warn)}
@@ -116,7 +121,7 @@ async function decryptObj(key,{iv,ct}){
 
 /* ---------- estado ---------- */
 let S=null,KEY=null,SALT=null;
-const blank=()=>({patients:[],sessions:[],payments:[],fin:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:''}});
+const blank=()=>({patients:[],sessions:[],payments:[],fin:[],settings:{name:'',chargeLate:true,chargeAbsent:true,lastBackup:'',montos:[],montosInit:false,lastMethod:''}});
 const freshUi=()=>({locked:true,tab:'hoy',prev:'hoy',date:today(),pid:null,fid:null,month:today().slice(0,7),modal:null,err:'',q:'',arch:false});
 let ui=freshUi();
 const STATUS={prog:'Programado',asistio:'Asistió',cancelo:'Canceló',cancelo_tarde:'Canceló tarde',falto:'Faltó'};
@@ -138,6 +143,7 @@ function migrate(){
       p.fid=f.id;
     }
   }
+  if(!S.settings.montosInit){S.settings.montosInit=true;learn(...S.patients.flatMap(p=>[p.fee,p.osFee]),...S.fin.flatMap(f=>[f.fee,f.copago]))}
 }
 async function unlock(pass){
   const raw=localStorage.getItem(LS);
@@ -199,6 +205,40 @@ function finStats(id){
   return r;
 }
 const statusLabel=s=>s.status==='prog'&&s.date<today()?'Sin cerrar':STATUS[s.status];
+/* montos frecuentes: se aprenden solos y se ofrecen como botones */
+const topMontos=(n=6)=>[...(S.settings.montos||[])].sort((a,b)=>b.n-a.n).slice(0,n).map(x=>x.v).sort((a,b)=>a-b);
+function learn(...vals){
+  const m=S.settings.montos=S.settings.montos||[];
+  for(const v of vals){const x=+v;if(!(x>0))continue;const f=m.find(o=>o.v===x);if(f)f.n++;else m.push({v:x,n:1})}
+  if(m.length>20){m.sort((a,b)=>b.n-a.n);m.length=20}
+}
+function amountField(name,label,val,extra=[],req=false){
+  const seen=new Set(),list=[];
+  for(const [l,v] of [...extra,...topMontos().map(v=>[money(v),v])]){if(v>0&&!seen.has(v)){seen.add(v);list.push([l,v])}}
+  return `<label>${label}</label><div class="pills" data-for="${name}">${list.map(([l,v])=>`<button type="button" class="pill${+val===v?' on':''}" data-act="setamt" data-name="${name}" data-v="${v}">${esc(l)}</button>`).join('')}</div><input type="number" name="${name}" min="0" step="any" value="${val??''}"${req?' required':''}>`;
+}
+function timeSelect(name,val){
+  const t=[];for(let h=7;h<=22;h++){t.push(pad(h)+':00');t.push(pad(h)+':30')}
+  if(val&&!t.includes(val)){t.push(val);t.sort()}
+  return `<select name="${name}">${t.map(x=>`<option${x===val?' selected':''}>${x}</option>`).join('')}</select>`;
+}
+const habitualTime=pid=>{const l=S.sessions.filter(s=>s.pid===pid).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];return l?l.time:'10:00'};
+const REPS=[[1,'No repetir'],[4,'4 semanas'],[8,'8 semanas'],[12,'12 semanas'],[24,'24 semanas'],[52,'Todo el año']];
+const METHODS=['Transferencia','Efectivo','Mercado Pago','Otro'];
+function syncPills(f,name){
+  const inp=f.elements[name];if(!inp)return;
+  f.querySelectorAll(`[data-for="${name}"] .pill`).forEach(b=>b.classList.toggle('on',+b.dataset.v===+inp.value));
+}
+function updSum(f){
+  const el=f.querySelector('#vsum');if(!el||!f.elements.fee)return;
+  const box=f.querySelector('details .osf'),os=f.elements.osAmt?+f.elements.osAmt.value||0:0;
+  el.textContent=`Valor: ${money(+f.elements.fee.value||0)}${box&&!box.hidden&&os?' + OS '+money(os):''} · cambiar`;
+}
+function setTime(f,v){
+  const sel=f.elements.time;if(!sel||!v)return;
+  if(![...sel.options].some(o=>o.value===v)){const o=new Option(v,v);const i=[...sel.options].findIndex(x=>x.value>v);sel.add(o,i<0?null:i)}
+  sel.value=v;
+}
 const owes=b=>b>0?`Debe ${money(b)}`:b<0?`A favor ${money(-b)}`:'Al día';
 
 /* ---------- vistas ---------- */
@@ -379,6 +419,10 @@ function ajustesView(){
   <h3 class="sec">Obras sociales y prepagas</h3>
   ${S.fin.map(f=>`<div class="item" data-act="editfin" data-id="${f.id}"><div class="grow"><div>${esc(f.name)}</div><div class="sub">${money(f.fee)} por sesión${f.reqAuth?' · exige autorización':''}</div></div><span class="ok">Editar</span></div>`).join('')}
   <div style="margin-top:8px"><button class="sec" data-act="newfin">+ Agregar obra social o prepaga</button></div>
+  <h3 class="sec">Montos frecuentes</h3>
+  <div class="box"><p class="mut" style="margin-top:0">Los montos que usás se guardan solos y aparecen como botones al cargar pacientes, turnos y cobros. Tocá uno para quitarlo.</p>
+  <div class="pills">${[...(st.montos||[])].sort((a,b)=>a.v-b.v).map(x=>`<button type="button" class="pill" data-act="delmonto" data-v="${x.v}">${money(x.v)} ✕</button>`).join('')||'<span class="mut">Todavía no hay montos guardados.</span>'}</div>
+  <form data-form="monto" class="row"><input type="number" name="m" min="1" step="any" placeholder="Agregar monto" required><button class="sec">Agregar</button></form></div>
   <h3 class="sec">Copia de seguridad</h3>
   <div class="box"><p class="mut" style="margin-top:0">${st.lastBackup?'Última copia: '+esc(st.lastBackup.split('-').reverse().join('/'))+'.':'Todavía no hiciste ninguna copia.'}</p><p class="mut">Tus datos viven solo en este teléfono. Si borrás los datos del navegador o perdés el equipo, se pierden. Descargá una copia cifrada seguido y guardala en Drive o mandátela por mail.</p>
   <div class="row wrap"><button data-act="export">Descargar copia</button><button class="sec" data-act="import">Restaurar copia</button></div>
@@ -388,56 +432,67 @@ function ajustesView(){
 
 function modalView(){
   const m=ui.modal;let inner='';
-  const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+`<option value="__new">+ Nueva obra social…</option>`;
-  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-osfee="${p.osFee||0}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}" data-copago="${f.copago||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+`<option value="__new">+ Nueva obra social…</option>`;
+  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-osfee="${p.osFee||0}" data-time="${habitualTime(p.id)}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
   const btns=(extra='')=>`<div class="btns"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div>${extra}`;
   if(m.t==='ses'){
     const e=m.id?S.sessions.find(x=>x.id===m.id):null;
     const p=e?pat(e.pid):m.pid?pat(m.pid):null;
     const hasOs=e?!!e.fid:!!(p&&p.fid);
-    const osf=`<div class="osf"${hasOs?'':' hidden'}><div class="grid2"><div><label>Paga la obra social</label><input type="number" name="osAmt" min="0" step="any" value="${e?(e.osAmt||0):p?p.osFee||0:0}"></div><div><label>Autorización / orden</label><input name="auth" value="${e?esc(e.auth):''}" placeholder="Nº"></div></div></div>`;
+    const fee=e?e.fee:p?p.fee||0:'';
+    const osv=e?(e.osAmt||0):p?p.osFee||0:0;
+    const sum=`Valor: ${money(+fee||0)}${hasOs&&osv?' + OS '+money(osv):''} · cambiar`;
+    const valores=`<details class="more"><summary id="vsum">${sum}</summary>${amountField('fee','Lo que paga el paciente',fee)}<div class="osf"${hasOs?'':' hidden'}>${amountField('osAmt','Lo que paga la obra social',osv)}</div></details>`;
+    const auth=`<div class="osf"${hasOs?'':' hidden'}><label>Autorización / orden</label><input name="auth" value="${e?esc(e.auth):''}" placeholder="Nº"></div>`;
     if(e&&p){
       const msg=`Hola ${first(p)}, te recuerdo tu sesión del ${longDate(e.date)} a las ${e.time}. ¡Gracias!${sign()}`;
       inner=`<h1 class="sm">${esc(p.name)}</h1><div class="sub">${esc(longDate(e.date))}</div>
       <form data-form="ses" data-id="${e.id}"><div class="chips">${Object.entries(STATUS).map(([k,v])=>`<label><input type="radio" name="status" value="${k}"${e.status===k?' checked':''}><span>${v}</span></label>`).join('')}</div>
-      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e.date}" required></div><div><label>Hora</label><input type="time" name="time" value="${esc(e.time)}" required></div></div>
-      <label>Valor (lo que paga el paciente)</label><input type="number" name="fee" min="0" step="any" value="${e.fee}" required>
-      ${osf}${btns()}</form>
+      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e.date}" required></div><div><label>Hora</label>${timeSelect('time',e.time)}</div></div>
+      ${valores}${auth}${btns()}</form>
       <div class="row sp">${waOk(p)?`<a class="btn lnk" target="_blank" rel="noopener" href="${waLink(p,msg)}">Recordar por WhatsApp</a>`:'<span></span>'}<button class="dng" data-act="delses" data-id="${e.id}">Borrar turno</button></div>`;
     }else{
       inner=`<h1 class="sm">Nuevo turno</h1><form data-form="ses"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
-      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label><input type="time" name="time" value="10:00" required></div></div>
-      <div class="grid2"><div><label>Valor (paciente)</label><input type="number" name="fee" min="0" step="any" value="${p?p.fee||0:''}" required></div><div><label>Repetir semanalmente (veces)</label><input type="number" name="rep" min="1" max="52" value="1"></div></div>
-      ${osf}${btns()}</form>`;
+      <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label>${timeSelect('time',p?habitualTime(p.id):'10:00')}</div></div>
+      ${valores}${auth}
+      <label>Repetir</label><select name="rep">${REPS.map(([n,l])=>`<option value="${n}">${l}</option>`).join('')}</select>
+      ${btns()}</form>`;
     }
   }else if(m.t==='pat'){
     const p={...(m.id?pat(m.id):{}),...(m.draft||{})};
     inner=`<h1 class="sm">${m.id?'Editar':'Nuevo'} paciente</h1><form data-form="pat" data-id="${m.id||''}">
     <label>Nombre</label><input name="name" required value="${esc(p.name)}">
     <label>WhatsApp (ej: 11 2345 6789)</label><input name="phone" inputmode="tel" value="${esc(p.phone)}">
-    <div class="grid2"><div><label>Paga el paciente por sesión</label><input type="number" name="fee" min="0" step="any" value="${p.fee??''}" required></div><div><label>Obra social / prepaga</label><select name="fid" data-chg="pickfin">${finOpts(p.fid)}</select></div></div>
-    <div class="osf"${p.fid?'':' hidden'}><div class="grid2"><div><label>Paga la obra social por sesión</label><input type="number" name="osFee" min="0" step="any" value="${p.osFee??''}"></div><div><label>Nº de afiliado</label><input name="afil" value="${esc(p.afil)}"></div></div>
-    <label>Tope de sesiones por mes (opcional)</label><input type="number" name="tope" min="0" value="${p.tope||''}"></div>
-    <label>Notas administrativas</label><textarea name="notes" rows="3" placeholder="Horario fijo, forma de pago, etc. (no pongas datos clínicos acá)">${esc(p.notes)}</textarea>
+    ${amountField('fee','Paga el paciente por sesión',p.fee,[],true)}
+    <label>Obra social / prepaga</label><select name="fid" data-chg="pickfin">${finOpts(p.fid)}</select>
+    <div class="osf"${p.fid?'':' hidden'}>${amountField('osFee','Paga la obra social por sesión',p.osFee)}
+    <div class="grid2"><div><label>Nº de afiliado</label><input name="afil" value="${esc(p.afil)}"></div><div><label>Tope de sesiones por mes</label><input type="number" name="tope" min="0" value="${p.tope||''}" placeholder="Opcional"></div></div></div>
+    <details class="more"${p.notes?' open':''}><summary>+ Notas administrativas</summary><textarea name="notes" rows="3" placeholder="Horario fijo, forma de pago, etc. (no pongas datos clínicos acá)">${esc(p.notes)}</textarea></details>
     ${btns()}</form>`;
   }else if(m.t==='fin'){
     const f=m.id?fin(m.id):{plazoPago:60};
     const used=m.id?S.patients.filter(p=>p.fid===m.id).length:0;
     inner=`<h1 class="sm">${m.id?'Editar':'Nueva'} obra social o prepaga</h1><form data-form="fin" data-id="${m.id||''}">
     <label>Nombre</label><input name="name" required value="${esc(f.name)}" placeholder="Swiss Medical, OSDE, IOMA…">
-    <div class="grid2"><div><label>Valor por sesión que paga</label><input type="number" name="fee" min="0" step="any" value="${f.fee??''}" required></div><div><label>Código de práctica</label><input name="codigo" value="${esc(f.codigo)}" placeholder="Ej: 420101"></div></div>
-    <div class="grid2"><div><label>Presentar hasta el día (del mes siguiente)</label><input type="number" name="diaLimite" min="1" max="28" value="${f.diaLimite||''}" placeholder="Ej: 10"></div><div><label>Plazo de pago (días)</label><input type="number" name="plazoPago" min="0" value="${f.plazoPago??''}"></div></div>
+    ${amountField('fee','Valor por sesión que paga',f.fee,[],true)}
+    ${amountField('copago','Copago habitual del paciente (se completa solo al cargar pacientes)',f.copago)}
+    <div class="grid2"><div><label>Código de práctica</label><input name="codigo" value="${esc(f.codigo)}" placeholder="Ej: 420101"></div><div><label>Presentar hasta el día</label><select name="diaLimite"><option value="">Sin límite</option>${[5,8,10,15,20,25].map(n=>`<option value="${n}"${+f.diaLimite===n?' selected':''}>${n} del mes siguiente</option>`).join('')}${f.diaLimite&&![5,8,10,15,20,25].includes(+f.diaLimite)?`<option value="${f.diaLimite}" selected>${f.diaLimite} del mes siguiente</option>`:''}</select></div></div>
+    <label>Plazo de pago</label><select name="plazoPago">${[30,45,60,90,120].map(n=>`<option value="${n}"${+f.plazoPago===n?' selected':''}>${n} días</option>`).join('')}</select>
     <div class="tog"><input type="checkbox" name="reqAuth" id="ra"${f.reqAuth?' checked':''}><label for="ra">Exige autorización u orden por sesión</label></div>
-    <label>Notas (requisitos, contacto, portal)</label><textarea name="notes" rows="3">${esc(f.notes)}</textarea>
+    <details class="more"${f.notes?' open':''}><summary>+ Notas (requisitos, contacto, portal)</summary><textarea name="notes" rows="3">${esc(f.notes)}</textarea></details>
     <p class="mut">Los requisitos cambian según la obra social: confirmá fechas y formatos en su instructivo de prestadores.</p>
     ${btns()}</form>
     ${m.id?(used?`<p class="mut">La usan ${used} paciente${used>1?'s':''}: no se puede eliminar.</p>`:`<button class="dng" data-act="delfin" data-id="${m.id}">Eliminar</button>`):''}`;
   }else if(m.t==='pay'){
-    const b=m.pid?Math.max(0,balance(m.pid)):'';
+    const p=m.pid?pat(m.pid):null;const b=p?Math.max(0,balance(p.id)):0;const dr=m.draft||{};
+    const extra=p?[[`Deuda ${money(b)}`,b],[`1 sesión ${money(p.fee)}`,+p.fee]]:[];
+    const meth=dr.method||S.settings.lastMethod||METHODS[0];
     inner=`<h1 class="sm">Registrar cobro</h1><form data-form="pay"><label>Paciente</label><select name="pid" required data-chg="pickdebt">${patOpts(m.pid)}</select>
-    <div class="grid2"><div><label>Monto</label><input type="number" name="amount" min="0" step="any" value="${b||''}" required></div><div><label>Fecha</label><input type="date" name="date" value="${today()}" required></div></div>
-    <label>Medio</label><select name="method"><option>Transferencia</option><option>Efectivo</option><option>Mercado Pago</option><option>Otro</option></select>
-    <label>Nota (opcional)</label><input name="note">${btns()}</form>`;
+    ${amountField('amount','Monto',b||'',extra,true)}
+    <label>Medio</label><div class="chips" style="margin-top:0">${METHODS.map(x=>`<label><input type="radio" name="method" value="${x}"${x===meth?' checked':''}><span>${x}</span></label>`).join('')}</div>
+    <label>Fecha</label><input type="date" name="date" value="${dr.date||today()}" required>
+    <details class="more"${dr.note?' open':''}><summary>+ Agregar nota</summary><input name="note" value="${esc(dr.note)}" placeholder="Nota (opcional)"></details>
+    ${btns()}</form>`;
   }else if(m.t==='pass'){
     inner=`<h1 class="sm">Cambiar clave</h1><form data-form="pass"><label>Clave nueva (mínimo 6 caracteres)</label><input type="password" name="p" minlength="6" required>
     <label>Repetir</label><input type="password" name="p2" required><p class="err">${esc(ui.err)}</p>
@@ -521,6 +576,8 @@ document.addEventListener('click',async e=>{
     const list=S.sessions.filter(s=>s.fid===f.id&&osBill(s)&&s.osSt==='pres');
     if(list.length&&confirm(`¿Marcar las ${list.length} sesiones presentadas de ${f.name} como cobradas hoy?`)){list.forEach(s=>{s.osSt='cobr';s.cobFecha=today()});await go()}
   }
+  else if(a==='setamt'){const f=t.closest('form');if(f&&f.elements[d.name]){f.elements[d.name].value=d.v;syncPills(f,d.name);updSum(f)}}
+  else if(a==='delmonto'){S.settings.montos=(S.settings.montos||[]).filter(x=>x.v!==+d.v);await go()}
   else if(a==='lock'){lock()}
   else if(a==='chpass'){ui.err='';ui.modal={t:'pass'};render()}
   else if(a==='export'){
@@ -530,6 +587,8 @@ document.addEventListener('click',async e=>{
   else if(a==='import'){document.getElementById('imp').click()}
 });
 document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.form&&t.type==='number'&&t.name){syncPills(t.form,t.name);updSum(t.form)}
   if(e.target.dataset.inp==='q'){ui.q=e.target.value;const l=document.getElementById('plist');if(l)l.innerHTML=patientListHtml()}
 });
 document.addEventListener('change',async e=>{
@@ -550,23 +609,30 @@ document.addEventListener('change',async e=>{
   else if(c==='cabs'){S.settings.chargeAbsent=t.checked;await save()}
   else if(c==='pickfee'){
     const f=t.form,o=t.selectedOptions[0];
-    if(o&&o.value){f.elements.fee.value=o.dataset.fee||0;const box=f.querySelector('.osf');
-      if(box){box.hidden=!o.dataset.fid;f.elements.osAmt.value=o.dataset.osfee||0}}
+    if(o&&o.value){
+      f.elements.fee.value=o.dataset.fee||0;f.elements.osAmt.value=o.dataset.osfee||0;
+      f.querySelectorAll('.osf').forEach(b=>b.hidden=!o.dataset.fid);
+      setTime(f,o.dataset.time);syncPills(f,'fee');syncPills(f,'osAmt');updSum(f);
+    }
   }
-  else if(c==='pickdebt'){if(t.value)t.form.elements.amount.value=Math.max(0,balance(t.value))||''}
+  else if(c==='pickdebt'){
+    const f=t.form;
+    ui.modal={t:'pay',pid:t.value,draft:{date:f.elements.date.value,method:f.elements.method.value,note:f.elements.note.value}};render();
+  }
   else if(c==='pickfin'){
     const f=t.form;
     if(t.value==='__new'){
       const name=(prompt('Nombre de la obra social o prepaga')||'').trim();
       const draft=Object.fromEntries(new FormData(f));
       if(!name){draft.fid='';ui.modal={t:'pat',id:f.dataset.id||'',draft};render();return}
-      const nf={id:uid(),name,fee:0,codigo:'',diaLimite:'',plazoPago:60,reqAuth:false,notes:''};
+      const nf={id:uid(),name,fee:+draft.osFee||0,copago:+draft.fee||0,codigo:'',diaLimite:'',plazoPago:60,reqAuth:false,notes:''};
       S.fin.push(nf);await save();draft.fid=nf.id;
       ui.modal={t:'pat',id:f.dataset.id||'',draft};render();return;
     }
     const box=f.querySelector('.osf');if(box)box.hidden=!t.value;
     const o=t.selectedOptions[0];
-    if(t.value&&!f.elements.osFee.value&&o&&+o.dataset.fee)f.elements.osFee.value=o.dataset.fee;
+    if(t.value&&!f.elements.osFee.value&&o&&+o.dataset.fee){f.elements.osFee.value=o.dataset.fee;syncPills(f,'osFee')}
+    if(t.value&&!+f.elements.fee.value&&o&&+o.dataset.copago){f.elements.fee.value=o.dataset.copago;syncPills(f,'fee')}
   }
 });
 document.addEventListener('submit',async e=>{
@@ -586,7 +652,7 @@ document.addEventListener('submit',async e=>{
       if(e2){
         Object.assign(e2,{status:v.status||e2.status,date:v.date,time:v.time,fee:+v.fee||0});
         if(e2.fid){e2.osAmt=+v.osAmt||0;e2.auth=(v.auth||'').trim()}
-        ui.date=v.date;
+        learn(v.fee,v.osAmt);ui.date=v.date;
       }
       ui.modal=null;await go();
     }else{
@@ -594,24 +660,28 @@ document.addEventListener('submit',async e=>{
       const n=Math.max(1,Math.min(52,+v.rep||1)),sid=n>1?uid():undefined;
       for(let i=0;i<n;i++)S.sessions.push({id:uid(),...(sid?{sid}:{}),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0,
         ...(p.fid?{fid:p.fid,osAmt:+v.osAmt||0,osSt:'pend',auth:(v.auth||'').trim()}:{})});
-      ui.date=v.date;ui.modal=null;ui.tab='hoy';ui.pid=null;await go();
+      learn(v.fee,v.osAmt);ui.date=v.date;ui.modal=null;ui.tab='hoy';ui.pid=null;await go();
     }
   }
   else if(k==='pat'){
     const rec={name:v.name.trim(),phone:v.phone.trim(),fee:+v.fee||0,notes:v.notes.trim(),fid:v.fid||'',
       osFee:v.fid?+v.osFee||0:0,afil:v.fid?(v.afil||'').trim():'',tope:v.fid?+v.tope||0:0};
+    learn(rec.fee,rec.osFee);
     if(f.dataset.id)Object.assign(pat(f.dataset.id),rec);else S.patients.push({id:uid(),...rec});
     ui.modal=null;await go();
   }
   else if(k==='fin'){
-    const rec={name:v.name.trim(),fee:+v.fee||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim()};
+    const rec={name:v.name.trim(),fee:+v.fee||0,copago:+v.copago||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim()};
+    learn(rec.fee,rec.copago);
     if(f.dataset.id)Object.assign(fin(f.dataset.id),rec);else S.fin.push({id:uid(),...rec});
     ui.modal=null;await go();
   }
   else if(k==='pay'){
-    S.payments.push({id:uid(),pid:v.pid,date:v.date,amount:+v.amount||0,method:v.method,note:v.note.trim()});
+    S.settings.lastMethod=v.method;
+    S.payments.push({id:uid(),pid:v.pid,date:v.date,amount:+v.amount||0,method:v.method,note:(v.note||'').trim()});
     ui.modal=null;await go();
   }
+  else if(k==='monto'){learn(+v.m);await go()}
   else if(k==='pass'){
     if(v.p!==v.p2){ui.err='Las claves no coinciden';render();return}
     SALT=crypto.getRandomValues(new Uint8Array(16));KEY=await deriveKey(v.p,SALT);ui.err='';ui.modal=null;await go();alert('Clave cambiada. Descargá una copia nueva: las anteriores usan la clave vieja.');

@@ -17,6 +17,11 @@ Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
   - Cada sesión asistida se sigue como **sin presentar → presentada → cobrada**, o **débito**.
   - Antes de presentar avisa de autorizaciones faltantes, afiliados sin número, sesiones que pasan el tope y el vencimiento del mes.
   - Descarga la planilla del mes en CSV (se abre en Excel), marca como presentado o cobrado, controla cuántos días pasaron desde la presentación y arma el texto del reclamo de un débito.
+- **Poco tipeo:**
+  - **Montos como botones:** los montos que usás (valor de sesión, lo que paga la obra social, copagos) se aprenden solos y aparecen como botones en pacientes, turnos y cobros. Un toque los carga, y el campo para escribir otro queda debajo. En Ajustes se pueden quitar o agregar.
+  - **Todo se completa solo:** el valor del turno viene del paciente, la hora sale de un combo y arranca en el horario habitual de ese paciente, y la repetición es un combo (no repetir, 4, 8, 12, 24 semanas o todo el año).
+  - **Cobros:** botones para la deuda completa o una sesión, el medio de pago como botones con el último usado ya elegido, y la nota opcional escondida.
+  - **Obra social:** al elegirla en un paciente se completan sola lo que paga y el copago habitual.
 - **Ajustes:** cobrar o no la cancelación tardía y la falta sin aviso, firma de los mensajes, obras sociales, copia de seguridad (con aviso si pasaron 15 días o más) y cambio de clave.
 
 ## Cómo se calculan los números
@@ -69,7 +74,7 @@ Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://loc
 
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v4` → `consultorio-v5`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v5` → `consultorio-v6`).
 
 ## Limitaciones conocidas
 
@@ -88,4 +93,5 @@ Ideas a futuro, por prioridad:
 2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
 3. Recibos en PDF y exportar todo a Excel.
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
-5. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
+5. Marcar asistencia y cobrar desde la misma pantalla de Hoy.
+6. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
