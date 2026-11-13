@@ -52,6 +52,16 @@ label{display:block;font-size:.82rem;color:var(--mut);margin:12px 0 5px}
 .pill.on{background:var(--pri);color:var(--onpri)}
 details.more{margin:14px 0 4px}details.more summary{cursor:pointer;color:var(--pri);font-weight:550;list-style:none;padding:4px 0}
 details.more summary::-webkit-details-marker{display:none}details.more[open] summary{margin-bottom:6px}
+.week{display:flex;align-items:center;gap:2px;margin:14px 0 4px}
+.wd{flex:1;background:none;color:var(--ink);padding:6px 0 4px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:500}
+.wd span{font-size:.72rem;color:var(--mut)}
+.wd b{font-size:1.05rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-weight:600}
+.wd i{font-style:normal;font-size:.7rem;color:var(--pri);height:10px;line-height:10px;letter-spacing:1px}
+.wd.td b{box-shadow:inset 0 0 0 1.5px var(--pri)}
+.wd.sel b{background:var(--pri);color:var(--onpri);box-shadow:none}
+#toast{position:fixed;left:16px;right:16px;bottom:158px;max-width:608px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;z-index:20;box-shadow:0 6px 20px #0004;font-size:.95rem}
+#toast.show{display:flex}
+#toast button{background:none;color:var(--bg);text-decoration:underline;padding:4px 6px;font-weight:650}
 .tag{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:99px;background:var(--pri2);color:var(--pri)}
 .banner{background:var(--pri2);border-radius:var(--r);padding:12px 14px;margin:14px 0}
 .banner.warn{background:var(--warnbg);color:var(--warn)}
@@ -223,7 +233,7 @@ function timeSelect(name,val){
   return `<select name="${name}">${t.map(x=>`<option${x===val?' selected':''}>${x}</option>`).join('')}</select>`;
 }
 const habitualTime=pid=>{const l=S.sessions.filter(s=>s.pid===pid).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];return l?l.time:'10:00'};
-const REPS=[[1,'No repetir'],[4,'4 semanas'],[8,'8 semanas'],[12,'12 semanas'],[24,'24 semanas'],[52,'Todo el año']];
+const REPS=[['1x7','No repetir'],['4x7','Cada semana · 4 veces'],['8x7','Cada semana · 8 veces'],['12x7','Cada semana · 12 veces'],['24x7','Cada semana · 24 veces'],['52x7','Cada semana · todo el año'],['6x14','Cada 2 semanas · 6 veces'],['12x14','Cada 2 semanas · 12 veces']];
 const METHODS=['Transferencia','Efectivo','Mercado Pago','Otro'];
 function syncPills(f,name){
   const inp=f.elements[name];if(!inp)return;
@@ -239,6 +249,16 @@ function setTime(f,v){
   if(![...sel.options].some(o=>o.value===v)){const o=new Option(v,v);const i=[...sel.options].findIndex(x=>x.value>v);sel.add(o,i<0?null:i)}
   sel.value=v;
 }
+function applyPatient(f){
+  const sel=f.elements.pid,o=sel.selectedOptions[0];
+  f.querySelectorAll('#ppills .pill').forEach(b=>b.classList.toggle('on',b.dataset.id===sel.value));
+  if(!(o&&o.value))return;
+  f.elements.fee.value=o.dataset.fee||0;f.elements.osAmt.value=o.dataset.osfee||0;
+  f.querySelectorAll('.osf').forEach(b=>b.hidden=!o.dataset.fid);
+  setTime(f,o.dataset.time);
+  if(f.elements.rep&&o.dataset.rep&&[...f.elements.rep.options].some(x=>x.value===o.dataset.rep))f.elements.rep.value=o.dataset.rep;
+  syncPills(f,'fee');syncPills(f,'osAmt');updSum(f);
+}
 const owes=b=>b>0?`Debe ${money(b)}`:b<0?`A favor ${money(-b)}`:'Al día';
 
 /* ---------- vistas ---------- */
@@ -251,6 +271,7 @@ function render(){
   else if(ui.tab==='pac')body=ui.pid?patientView():patientsView();
   else body=ui.fid?finView():plataView();
   const tabs=[['hoy','Hoy'],['pac','Pacientes'],['plata','Plata']];
+  if(ui.modal)hideToast();
   app.innerHTML=body+`<nav>${tabs.map(([k,l])=>`<button class="${ui.tab===k?'on':''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}</nav>`+(ui.modal?modalView():'');
 }
 function lockView(){
@@ -263,6 +284,36 @@ function lockView(){
 }
 const gearBtn=`<button class="icon" data-act="aj" aria-label="Ajustes">${GEAR}</button>`;
 
+function weekStrip(){
+  const dow=(new Date(ui.date+'T12:00').getDay()+6)%7;
+  const start=addDays(ui.date,-dow),names=['L','M','M','J','V','S','D'];
+  return `<div class="week"><button class="icon" data-act="day" data-n="-7" aria-label="Semana anterior">‹</button>${[...Array(7)].map((_,i)=>{
+    const ds=addDays(start,i),n=S.sessions.filter(x=>x.date===ds).length;
+    return `<button class="wd${ds===ui.date?' sel':''}${ds===today()?' td':''}" data-act="goday" data-d="${ds}" aria-label="${esc(longDate(ds))}"><span>${names[i]}</span><b>${+ds.slice(8)}</b><i>${n?'•'.repeat(Math.min(n,3)):''}</i></button>`}).join('')}<button class="icon" data-act="day" data-n="7" aria-label="Semana siguiente">›</button></div>`;
+}
+/* series que se terminan: se renuevan con un toque */
+function renewals(){
+  const t=today(),lim=addDays(t,7),bySid={},out=[];
+  for(const x of S.sessions){if(!x.sid)continue;const p=pat(x.pid);if(!p||p.archived)continue;(bySid[x.sid]=bySid[x.sid]||[]).push(x)}
+  for(const list of Object.values(bySid)){
+    if(list.length<2)continue;
+    list.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    const last=list[list.length-1];
+    if(last.date<=lim&&last.date>=addDays(t,-14)&&!S.sessions.some(x=>x.pid===last.pid&&x.sid!==last.sid&&x.date>last.date))out.push(last);
+  }
+  return out.sort((a,b)=>a.date.localeCompare(b.date));
+}
+const RENEW_N=4;
+function renewBanner(){
+  const r=renewals();if(!r.length)return '';
+  return `<div class="banner"><b>Por renovar</b>${r.slice(0,3).map(x=>{const p=pat(x.pid);
+    return `<div class="row sp" style="margin-top:8px"><div class="grow"><div>${esc(p.name)}</div><div class="sub">${x.date>=today()?'Último turno':'Terminó'} el ${shortDate(x.date)} · ${esc(x.time)}</div></div><button class="sm" data-act="renew" data-id="${x.id}">Renovar ${RENEW_N}</button></div>`}).join('')}${r.length>3?`<div class="sub" style="margin-top:6px">y ${r.length-3} más</div>`:''}</div>`;
+}
+function recentPats(){
+  const since=addDays(today(),-45),cnt={};
+  for(const x of S.sessions)if(x.date>=since)cnt[x.pid]=(cnt[x.pid]||0)+1;
+  return S.patients.filter(p=>!p.archived&&cnt[p.id]).sort((a,b)=>cnt[b.id]-cnt[a.id]).slice(0,6);
+}
 function hoyView(){
   const list=S.sessions.filter(s=>s.date===ui.date).sort((a,b)=>a.time.localeCompare(b.time));
   const isToday=ui.date===today();
@@ -270,18 +321,17 @@ function hoyView(){
   const pend=pending(),age=backupAge();
   const pendBanner=pend.length?`<div class="banner warn">Tenés <b>${pend.length}</b> turno${pend.length>1?'s':''} pasado${pend.length>1?'s':''} sin cerrar (siguen como "Programado" y no se cuentan).<div class="row"><button class="sm" data-act="gopend">Revisar</button></div></div>`:'';
   const bkBanner=S.patients.length&&(age===null||age>=15)?`<div class="banner">${age===null?'Todavía no descargaste ninguna copia de seguridad.':`Hace <b>${age}</b> días que no descargás una copia de seguridad.`}<div class="row"><button class="sm" data-act="export">Descargar copia</button></div></div>`:'';
+  const renBanner=isToday?renewBanner():'';
   const rows=list.map(s=>{const p=pat(s.pid);if(!p)return '';
     const late=s.status==='prog'&&s.date<today();
     return `<div class="item" data-act="opensess" data-id="${s.id}"><div class="time">${esc(s.time)}</div>
-    <div class="grow"><div>${esc(p.name)}</div><div class="sub${late?' warnt':''}">${money(s.fee)}${s.osAmt?' + OS '+money(s.osAmt):''} · ${statusLabel(s)}</div></div>
+    <div class="grow"><div>${esc(p.name)}</div><div class="sub${late?' warnt':''}">${money(s.fee)}${s.osAmt?' + OS '+money(s.osAmt):''} · ${statusLabel(s)}</div>${s.status==='asistio'&&balance(p.id)>0?`<div style="margin-top:6px"><button type="button" class="pill" data-act="cobrarrow" data-pid="${p.id}">Cobrar ${money(balance(p.id))}</button></div>`:''}</div>
     <button class="chk${s.status==='asistio'?' on':''}" data-act="tog" data-id="${s.id}" aria-label="Marcar asistió">${CHECK}</button></div>`}).join('');
   return `<div class="top"><div><h1>${isToday?'Hoy':esc(capital(dayName(ui.date)))}</h1>
   <div class="sub">${n} turno${n===1?'':'s'}${n?` · ${m?m+' por marcar':'todo marcado'}`:''}</div></div>${gearBtn}</div>
-  ${pendBanner}${bkBanner}
-  <div class="datenav"><button class="icon" data-act="day" data-n="-1" aria-label="Día anterior">‹</button>
-  <label class="dlabel">${esc(capital(longDate(ui.date)))}<input type="date" value="${ui.date}" data-chg="goto"></label>
-  <button class="icon" data-act="day" data-n="1" aria-label="Día siguiente">›</button></div>
-  ${isToday?'':'<div style="text-align:center"><button class="lnk" data-act="day" data-n="0">Volver a hoy</button></div>'}
+  ${pendBanner}${renBanner}${bkBanner}
+  ${weekStrip()}
+  <div class="row sp" style="margin:4px 0 2px"><label class="dlabel" style="text-align:left">${esc(capital(longDate(ui.date)))} ▾<input type="date" value="${ui.date}" data-chg="goto"></label>${isToday?'':'<button class="lnk" data-act="day" data-n="0">Hoy</button>'}</div>
   <div>${rows||`<div class="empty">${isToday?'No hay turnos para hoy.':'Sin turnos este día.'}</div>`}</div>
   <button class="fab" data-act="newses" aria-label="Nuevo turno">+</button>`;
 }
@@ -433,7 +483,7 @@ function ajustesView(){
 function modalView(){
   const m=ui.modal;let inner='';
   const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}" data-copago="${f.copago||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+`<option value="__new">+ Nueva obra social…</option>`;
-  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-osfee="${p.osFee||0}" data-time="${habitualTime(p.id)}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
+  const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-rep="${p.rep||''}" data-osfee="${p.osFee||0}" data-time="${habitualTime(p.id)}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
   const btns=(extra='')=>`<div class="btns"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div>${extra}`;
   if(m.t==='ses'){
     const e=m.id?S.sessions.find(x=>x.id===m.id):null;
@@ -450,12 +500,14 @@ function modalView(){
       <form data-form="ses" data-id="${e.id}"><div class="chips">${Object.entries(STATUS).map(([k,v])=>`<label><input type="radio" name="status" value="${k}"${e.status===k?' checked':''}><span>${v}</span></label>`).join('')}</div>
       <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${e.date}" required></div><div><label>Hora</label>${timeSelect('time',e.time)}</div></div>
       ${valores}${auth}${btns()}</form>
+      ${S.sessions.some(x=>x.pid===e.pid&&x.date===addDays(e.date,e.step||7))?'':`<div style="margin:8px 0"><button class="sec sm" data-act="again" data-id="${e.id}">Agendar de nuevo ${(e.step||7)===7?'la semana que viene':'en '+(e.step||7)+' días'}</button></div>`}
       <div class="row sp">${waOk(p)?`<a class="btn lnk" target="_blank" rel="noopener" href="${waLink(p,msg)}">Recordar por WhatsApp</a>`:'<span></span>'}<button class="dng" data-act="delses" data-id="${e.id}">Borrar turno</button></div>`;
     }else{
-      inner=`<h1 class="sm">Nuevo turno</h1><form data-form="ses"><label>Paciente</label><select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
+      const rec=m.pid?[]:recentPats();
+      inner=`<h1 class="sm">Nuevo turno</h1><form data-form="ses"><label>Paciente</label>${rec.length?`<div class="pills" id="ppills">${rec.map(x=>`<button type="button" class="pill" data-act="pickpat" data-id="${x.id}">${esc(first(x))}</button>`).join('')}</div>`:''}<select name="pid" required data-chg="pickfee">${patOpts(m.pid)}</select>
       <div class="grid2"><div><label>Fecha</label><input type="date" name="date" value="${m.date||ui.date}" required></div><div><label>Hora</label>${timeSelect('time',p?habitualTime(p.id):'10:00')}</div></div>
       ${valores}${auth}
-      <label>Repetir</label><select name="rep">${REPS.map(([n,l])=>`<option value="${n}">${l}</option>`).join('')}</select>
+      <label>Repetir</label><select name="rep">${REPS.map(([n,l])=>`<option value="${n}"${n===((p&&p.rep)||S.settings.lastRep||'1x7')?' selected':''}>${l}</option>`).join('')}</select>
       ${btns()}</form>`;
     }
   }else if(m.t==='pat'){
@@ -521,6 +573,15 @@ function reclamoText(s){
 
 /* ---------- eventos ---------- */
 const go=async()=>{await save();render()};
+let undoFn=null,toastT=null;
+function toast(msg,undo){
+  let el=document.getElementById('toast');
+  if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el)}
+  undoFn=undo||null;
+  el.innerHTML=`<span>${esc(msg)}</span>${undo?'<button data-act="undo">Deshacer</button>':''}`;
+  el.className='show';clearTimeout(toastT);toastT=setTimeout(hideToast,7000);
+}
+function hideToast(){const el=document.getElementById('toast');if(el)el.className='';undoFn=null}
 document.addEventListener('click',async e=>{
   const t=e.target.closest('[data-act]');if(!t)return;
   const a=t.dataset.act,d=t.dataset;
@@ -532,6 +593,31 @@ document.addEventListener('click',async e=>{
   else if(a==='month'){ui.month=d.m;render()}
   else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
   else if(a==='opensess'){ui.modal={t:'ses',id:d.id};render()}
+  else if(a==='goday'){ui.date=d.d;render()}
+  else if(a==='pickpat'){const f=t.closest('form');f.elements.pid.value=d.id;applyPatient(f)}
+  else if(a==='undo'){const u=undoFn;hideToast();if(u)await u()}
+  else if(a==='cobrarrow'){
+    const p=pat(d.pid),b=p?balance(p.id):0;
+    if(p&&b>0){const pay={id:uid(),pid:p.id,date:today(),amount:b,method:S.settings.lastMethod||METHODS[0],note:''};
+      S.payments.push(pay);await go();
+      toast(`Cobro de ${money(b)} a ${first(p)} registrado (${pay.method})`,async()=>{S.payments=S.payments.filter(x=>x.id!==pay.id);await go()});}
+  }
+  else if(a==='again'){
+    const s0=S.sessions.find(x=>x.id===d.id);if(!s0)return;
+    const step=s0.step||7;if(!s0.sid){s0.sid=uid();s0.step=step}
+    const ns={id:uid(),sid:s0.sid,step,pid:s0.pid,date:addDays(s0.date,step),time:s0.time,status:'prog',fee:s0.fee,...(s0.fid?{fid:s0.fid,osAmt:s0.osAmt||0,osSt:'pend',auth:''}:{})};
+    S.sessions.push(ns);ui.modal=null;await go();
+    toast(`Turno agendado para el ${longDate(ns.date)}`,async()=>{S.sessions=S.sessions.filter(x=>x.id!==ns.id);await go()});
+  }
+  else if(a==='renew'){
+    const l=S.sessions.find(x=>x.id===d.id);if(!l)return;
+    const step=l.step||7;let nd=addDays(l.date,step);while(nd<today())nd=addDays(nd,step);
+    const ids=[];
+    for(let i=0;i<RENEW_N;i++){const id=uid();ids.push(id);
+      S.sessions.push({id,sid:l.sid,step,pid:l.pid,date:addDays(nd,step*i),time:l.time,status:'prog',fee:l.fee,...(l.fid?{fid:l.fid,osAmt:l.osAmt||0,osSt:'pend',auth:''}:{})})}
+    await go();
+    toast(`${RENEW_N} turnos nuevos para ${first(pat(l.pid))}`,async()=>{S.sessions=S.sessions.filter(x=>!ids.includes(x.id));await go()});
+  }
   else if(a==='tog'){const s=S.sessions.find(x=>x.id===d.id);if(s){s.status=s.status==='asistio'?'prog':'asistio';await go()}}
   else if(a==='newpat'){ui.modal={t:'pat'};render()}
   else if(a==='editpat'){ui.modal={t:'pat',id:d.id};render()}
@@ -607,14 +693,7 @@ document.addEventListener('change',async e=>{
   else if(c==='sname'){S.settings.name=t.value.trim();await save()}
   else if(c==='clate'){S.settings.chargeLate=t.checked;await save()}
   else if(c==='cabs'){S.settings.chargeAbsent=t.checked;await save()}
-  else if(c==='pickfee'){
-    const f=t.form,o=t.selectedOptions[0];
-    if(o&&o.value){
-      f.elements.fee.value=o.dataset.fee||0;f.elements.osAmt.value=o.dataset.osfee||0;
-      f.querySelectorAll('.osf').forEach(b=>b.hidden=!o.dataset.fid);
-      setTime(f,o.dataset.time);syncPills(f,'fee');syncPills(f,'osAmt');updSum(f);
-    }
-  }
+  else if(c==='pickfee'){applyPatient(t.form)}
   else if(c==='pickdebt'){
     const f=t.form;
     ui.modal={t:'pay',pid:t.value,draft:{date:f.elements.date.value,method:f.elements.method.value,note:f.elements.note.value}};render();
@@ -650,17 +729,32 @@ document.addEventListener('submit',async e=>{
     if(f.dataset.id){
       const e2=S.sessions.find(x=>x.id===f.dataset.id);
       if(e2){
+        const old={date:e2.date,time:e2.time,fee:e2.fee,os:+e2.osAmt||0};
         Object.assign(e2,{status:v.status||e2.status,date:v.date,time:v.time,fee:+v.fee||0});
         if(e2.fid){e2.osAmt=+v.osAmt||0;e2.auth=(v.auth||'').trim()}
         learn(v.fee,v.osAmt);ui.date=v.date;
+        const delta=daysBetween(old.date,e2.date),os=+e2.osAmt||0;
+        const changed=old.time!==e2.time||old.fee!==e2.fee||old.os!==os||delta!==0;
+        const later=e2.sid&&changed?S.sessions.filter(x=>x.sid===e2.sid&&x.id!==e2.id&&x.status==='prog'&&(x.date+x.time)>(old.date+old.time)):[];
+        if(later.length&&confirm(`¿Aplicar este cambio también a los ${later.length} turnos siguientes de la serie?`)){
+          for(const x of later){
+            if(old.time!==e2.time)x.time=e2.time;
+            if(old.fee!==e2.fee)x.fee=e2.fee;
+            if(e2.fid&&old.os!==os)x.osAmt=os;
+            if(delta)x.date=addDays(x.date,delta);
+          }
+        }
       }
       ui.modal=null;await go();
     }else{
       const p=pat(v.pid);if(!p)return;
-      const n=Math.max(1,Math.min(52,+v.rep||1)),sid=n>1?uid():undefined;
-      for(let i=0;i<n;i++)S.sessions.push({id:uid(),...(sid?{sid}:{}),pid:v.pid,date:addDays(v.date,7*i),time:v.time,status:'prog',fee:+v.fee||0,
-        ...(p.fid?{fid:p.fid,osAmt:+v.osAmt||0,osSt:'pend',auth:(v.auth||'').trim()}:{})});
+      const [n0,step0]=String(v.rep||'1x7').split('x').map(Number);
+      const n=Math.max(1,Math.min(52,n0||1)),step=step0||7,sid=n>1?uid():undefined,ids=[];
+      for(let i=0;i<n;i++){const id=uid();ids.push(id);S.sessions.push({id,...(sid?{sid,step}:{}),pid:v.pid,date:addDays(v.date,step*i),time:v.time,status:'prog',fee:+v.fee||0,
+        ...(p.fid?{fid:p.fid,osAmt:+v.osAmt||0,osSt:'pend',auth:(v.auth||'').trim()}:{})})}
+      p.rep=v.rep;S.settings.lastRep=v.rep;
       learn(v.fee,v.osAmt);ui.date=v.date;ui.modal=null;ui.tab='hoy';ui.pid=null;await go();
+      if(n>1)toast(`${n} turnos agendados para ${first(p)}`,async()=>{S.sessions=S.sessions.filter(x=>!ids.includes(x.id));await go()});
     }
   }
   else if(k==='pat'){
@@ -687,7 +781,15 @@ document.addEventListener('submit',async e=>{
     SALT=crypto.getRandomValues(new Uint8Array(16));KEY=await deriveKey(v.p,SALT);ui.err='';ui.modal=null;await go();alert('Clave cambiada. Descargá una copia nueva: las anteriores usan la clave vieja.');
   }
 });
-function lock(){S=null;KEY=null;SALT=null;ui=freshUi();render()}
+function lock(){S=null;KEY=null;SALT=null;ui=freshUi();hideToast();render()}
+/* deslizar a los costados cambia de día */
+let tx=0,ty=0,tOk=false;
+document.addEventListener('touchstart',e=>{const t=e.touches[0];tx=t.clientX;ty=t.clientY;tOk=!ui.locked&&ui.tab==='hoy'&&!ui.modal&&!e.target.closest('input,select,textarea')},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(!tOk)return;tOk=false;
+  const t=e.changedTouches[0],dx=t.clientX-tx,dy=t.clientY-ty;
+  if(Math.abs(dx)>70&&Math.abs(dy)<45){ui.date=addDays(ui.date,dx<0?1:-1);render()}
+},{passive:true});
 let hiddenAt=0;const LOCK_MS=30000;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){hiddenAt=Date.now();return}

@@ -8,7 +8,13 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 
 Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
 
-- **Hoy:** turnos del día. Un toque en el círculo marca que asistió; tocar el turno abre la hoja para cambiar estado, fecha, hora, valor, autorización, recordar por WhatsApp o borrarlo. Los turnos se pueden repetir semanalmente y borrar de a uno o con todos los siguientes de la serie. Los turnos pasados sin cerrar se marcan y se avisa.
+- **Hoy:** la semana siempre a la vista. Una tira de lunes a domingo muestra con puntos qué días tienen turnos; se toca un día, se desliza a los costados para pasar de día o se usan las flechas para cambiar de semana. Un toque en el círculo marca que asistió, y si el paciente debe plata aparece **Cobrar $X** en la misma fila: registra el cobro con el último medio usado y se puede deshacer. Tocar el turno abre la hoja para cambiar estado, fecha, hora, valor y autorización, recordar por WhatsApp o borrarlo.
+- **Repetir sin esfuerzo:**
+  - Al crear un turno se elige el paciente con un botón (aparecen los que más atendés) y la repetición con un combo: cada semana o cada 2 semanas, con distintas cantidades. Recuerda la última que usó cada paciente.
+  - **Por renovar:** cuando una serie está por terminar o terminó hace poco, aparece un aviso con el botón **Renovar 4**, que agenda cuatro turnos más con el mismo horario y valores.
+  - **Agendar de nuevo:** desde un turno, un botón crea el de la semana que viene, sin completar nada.
+  - Si cambiás la hora, el día o el valor de un turno que es parte de una serie, la app pregunta si aplica el cambio a los siguientes.
+  - Casi todo lo que agenda avisa con "Deshacer" por unos segundos. Se pueden borrar de a uno o con todos los siguientes. Los turnos pasados sin cerrar se marcan y se avisa.
 - **Pacientes:** buscador (nombre, obra social, teléfono), saldo, historial de sesiones y cobros, aviso de deuda por WhatsApp. Se pueden archivar: se ocultan de las listas y de los turnos nuevos, pero conservan historial y deuda.
 - **Plata:** cobrado, facturado, proyectado y deuda de pacientes del mes, y el estado de cada obra social.
 - **Obras sociales y prepagas** (lo que más cambió):
@@ -74,13 +80,13 @@ Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://loc
 
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v5` → `consultorio-v6`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v6` → `consultorio-v7`).
 
 ## Limitaciones conocidas
 
 - La app no emite facturas electrónicas ni se conecta a los portales de las obras sociales: prepara la planilla y el control, y la presentación se hace por el canal de cada una.
 - No imprime ni arma la planilla de asistencia para firmar.
-- Al editar un turno repetido se cambia solo ese turno, no la serie.
+- Cuando se edita un turno de una serie, el cambio a los siguientes se aplica solo si se confirma.
 - Eliminar un paciente borra también sus sesiones y cobros: para conservar el historial conviene archivarlo.
 - Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
 - Después de publicar una versión nueva, el celular puede mostrar la anterior hasta abrir la app una segunda vez (cache primero).
@@ -93,5 +99,5 @@ Ideas a futuro, por prioridad:
 2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
 3. Recibos en PDF y exportar todo a Excel.
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
-5. Marcar asistencia y cobrar desde la misma pantalla de Hoy.
+5. Vista de mes completo para ver la carga de turnos de un vistazo.
 6. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
