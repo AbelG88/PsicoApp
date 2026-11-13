@@ -61,6 +61,7 @@ details.more summary::-webkit-details-marker{display:none}details.more[open] sum
 .wd.sel b{background:var(--pri);color:var(--onpri);box-shadow:none}
 #toast{position:fixed;left:16px;right:16px;bottom:158px;max-width:608px;margin:0 auto;background:var(--ink);color:var(--bg);border-radius:14px;padding:12px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;z-index:20;box-shadow:0 6px 20px #0004;font-size:.95rem}
 #toast.show{display:flex}
+#toast.top{bottom:auto;top:16px}
 #toast button{background:none;color:var(--bg);text-decoration:underline;padding:4px 6px;font-weight:650}
 .mon .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:6px}
 .mh{text-align:center;font-size:.72rem;color:var(--mut);padding:2px 0}
@@ -243,6 +244,18 @@ function timeSelect(name,val){
 }
 const habitualTime=pid=>{const l=S.sessions.filter(s=>s.pid===pid).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];return l?l.time:'10:00'};
 const REPS=[['1x7','No repetir'],['4x7','Cada semana · 4 veces'],['8x7','Cada semana · 8 veces'],['12x7','Cada semana · 12 veces'],['24x7','Cada semana · 24 veces'],['52x7','Cada semana · todo el año'],['6x14','Cada 2 semanas · 6 veces'],['12x14','Cada 2 semanas · 12 veces']];
+/* prepagas frecuentes: solo se precarga el nombre y una nota; los requisitos se confirman con cada una */
+const PRESETS=[
+ {name:'OSDE',nota:'OSDE tiene un sistema de turnos para profesionales de salud mental que valida el nº de afiliado (guía "primeros pasos salud mental"). No encontré instructivo público de facturación: pedirlo a Prestadores y completar autorización, tope, valor y fecha límite.'},
+ {name:'Swiss Medical',nota:'Portal de prestadores de Swiss Medical (usuario y contraseña). Las autorizaciones se tramitan desde "Trámite Centro de Atención Prestadores". No encontré instructivo público de facturación para psicología: confirmar plazos, valor y formato.'},
+ {name:'Galeno',nota:'No encontré información pública sobre facturación de psicología. Pedir el instructivo de prestadores a Galeno y completar autorización, tope, valor y fecha límite.'},
+ {name:'SanCor Salud',nota:'Según el manual de un colegio profesional, SanCor Salud usa "Gestión de Autorización y Facturación online" desde el sitio Autogestión. Confirmar con SanCor si aplica a psicología, y completar tope, valor y fecha límite.'},
+ {name:'Medicus',nota:'No encontré información pública sobre facturación de psicología. Pedir el instructivo de prestadores a Medicus y completar autorización, tope, valor y fecha límite.'}
+];
+const presetFin=(pr,fee,copago)=>({id:uid(),name:pr.name,fee:+fee||0,copago:+copago||0,codigo:'',diaLimite:'',plazoPago:60,reqAuth:false,notes:pr.nota,ok:false});
+function preguntasFin(nombre){
+  return `Hola, les escribo como profesional de psicología interesado/a en facturar prestaciones con ${nombre}. ¿Me pueden confirmar los requisitos vigentes?\n\n1. ¿Se requiere autorización previa u orden médica? ¿Cómo se tramita?\n2. ¿Cuántas sesiones se reconocen por mes y por año, y de qué duración?\n3. ¿Cuál es el valor (arancel) por sesión y cuál es el copago del afiliado?\n4. ¿Hasta qué día del mes siguiente se presenta la facturación y por qué canal o portal?\n5. ¿Piden planilla de asistencia? ¿Tienen un modelo propio?\n6. ¿Qué factura debo emitir (tipo, a nombre de quién y con qué datos)?\n7. ¿En cuántos días pagan y cómo informan los débitos?\n\nMuchas gracias.${S&&S.settings.name?'\n'+S.settings.name:''}`;
+}
 const METHODS=['Transferencia','Efectivo','Mercado Pago','Otro'];
 function syncPills(f,name){
   const inp=f.elements[name];if(!inp)return;
@@ -549,6 +562,7 @@ function finView(){
   return `<div class="top"><button class="lnk" data-act="finback">‹ Plata</button><button class="lnk" data-act="editfin" data-id="${f.id}">Editar</button></div>
   <h1 style="margin-top:12px" class="sm">${esc(f.name)}</h1>
   <div class="sub">${money(f.fee)} por sesión${f.codigo?' · código '+esc(f.codigo):''}${f.diaLimite?' · presentar hasta el '+esc(f.diaLimite)+' del mes siguiente':''}${f.plazoPago?' · paga a '+esc(f.plazoPago)+' días':''}</div>
+  ${f.ok===false?`<div class="banner warn"><b>Requisitos sin confirmar.</b> No hay información pública verificada de ${esc(f.name)}: pedile el instructivo de prestadores (en Editar, "Copiar las preguntas") y completá autorización, tope, valor y fecha límite. Hasta entonces, los avisos de la app pueden no coincidir con lo que exige.<div class="row"><button class="sm" data-act="editfin" data-id="${f.id}">Completar</button></div></div>`:''}
   <div class="sub" style="margin-top:18px">Te debe esta obra social</div><div class="big">${money(st.total)}</div>
   <div class="kpis"><div><div class="sub">Por presentar</div><b>${money(st.pend)}</b></div><div><div class="sub">Presentado</div><b>${money(st.pres)}</b></div><div><div class="sub">Débitos</div><b class="${st.deb?'bad':''}">${money(st.deb)}</b></div></div>
   <h3 class="sec">Planilla de asistencia</h3>
@@ -590,7 +604,7 @@ function ajustesView(){
 
 function modalView(){
   const m=ui.modal;let inner='';
-  const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}" data-copago="${f.copago||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+`<option value="__new">+ Nueva obra social…</option>`;
+  const finOpts=sel=>`<option value="">Particular</option>`+S.fin.map(f=>`<option value="${f.id}" data-fee="${f.fee||0}" data-copago="${f.copago||0}"${f.id===sel?' selected':''}>${esc(f.name)}</option>`).join('')+(()=>{const faltan=PRESETS.map((pr,i)=>[pr,i]).filter(([pr])=>!S.fin.some(f=>norm(f.name)===norm(pr.name)));return faltan.length?`<optgroup label="Agregar con un toque">${faltan.map(([pr,i])=>`<option value="__p${i}">${esc(pr.name)}</option>`).join('')}</optgroup>`:''})()+`<option value="__new">Otra…</option>`;
   const patOpts=sel=>`<option value="">— elegir —</option>`+S.patients.filter(p=>!p.archived||p.id===sel).sort((a,b)=>a.name.localeCompare(b.name)).map(p=>`<option value="${p.id}" data-fee="${p.fee||0}" data-fid="${p.fid||''}" data-rep="${p.rep||''}" data-osfee="${p.osFee||0}" data-time="${habitualTime(p.id)}"${p.id===sel?' selected':''}>${esc(p.name)}</option>`).join('');
   const btns=(extra='')=>`<div class="btns"><button>Guardar</button><button type="button" class="sec" data-act="close">Cancelar</button></div>${extra}`;
   if(m.t==='ses'){
@@ -634,12 +648,15 @@ function modalView(){
     const f=m.id?fin(m.id):{plazoPago:60};
     const used=m.id?S.patients.filter(p=>p.fid===m.id).length:0;
     inner=`<h1 class="sm">${m.id?'Editar':'Nueva'} obra social o prepaga</h1><form data-form="fin" data-id="${m.id||''}">
+    ${m.id?'':`<label style="margin-top:0">Cargar rápido</label><div class="pills">${PRESETS.filter(pr=>!S.fin.some(f=>norm(f.name)===norm(pr.name))).map((pr,i)=>`<button type="button" class="pill" data-act="finpreset" data-n="${esc(pr.name)}">${esc(pr.name)}</button>`).join('')}</div>`}
     <label>Nombre</label><input name="name" required value="${esc(f.name)}" placeholder="Swiss Medical, OSDE, IOMA…">
     ${amountField('fee','Valor por sesión que paga',f.fee,[],true)}
     ${amountField('copago','Copago habitual del paciente (se completa solo al cargar pacientes)',f.copago)}
     <div class="grid2"><div><label>Código de práctica</label><input name="codigo" value="${esc(f.codigo)}" placeholder="Ej: 420101"></div><div><label>Presentar hasta el día</label><select name="diaLimite"><option value="">Sin límite</option>${[5,8,10,15,20,25].map(n=>`<option value="${n}"${+f.diaLimite===n?' selected':''}>${n} del mes siguiente</option>`).join('')}${f.diaLimite&&![5,8,10,15,20,25].includes(+f.diaLimite)?`<option value="${f.diaLimite}" selected>${f.diaLimite} del mes siguiente</option>`:''}</select></div></div>
     <label>Plazo de pago</label><select name="plazoPago">${[30,45,60,90,120].map(n=>`<option value="${n}"${+f.plazoPago===n?' selected':''}>${n} días</option>`).join('')}</select>
     <div class="tog"><input type="checkbox" name="reqAuth" id="ra"${f.reqAuth?' checked':''}><label for="ra">Exige autorización u orden por sesión</label></div>
+    <div class="tog"><input type="checkbox" name="ok" id="ok"${f.ok!==false?' checked':''}><label for="ok">Ya confirmé los requisitos con la obra social</label></div>
+    <button type="button" class="lnk" data-act="askfin">Copiar las preguntas para pedirle los requisitos</button>
     <details class="more"><summary>+ Planilla de asistencia</summary>
     <label>Formato</label><select name="pFormato"><option value="paciente">Una hoja por paciente</option><option value="listado"${f.pFormato==='listado'?' selected':''}>Listado del mes con todos los pacientes</option></select>
     <div class="tog"><input type="checkbox" name="pHora" id="ph"${f.pHora!==false?' checked':''}><label for="ph">Columna de hora</label></div>
@@ -695,7 +712,7 @@ function toast(msg,undo){
   if(!el){el=document.createElement('div');el.id='toast';document.body.appendChild(el)}
   undoFn=undo||null;
   el.innerHTML=`<span>${esc(msg)}</span>${undo?'<button data-act="undo">Deshacer</button>':''}`;
-  el.className='show';clearTimeout(toastT);toastT=setTimeout(hideToast,7000);
+  el.className='show'+(ui.modal?' top':'');clearTimeout(toastT);toastT=setTimeout(hideToast,7000);
 }
 function hideToast(){const el=document.getElementById('toast');if(el)el.className='';undoFn=null}
 document.addEventListener('click',async e=>{
@@ -709,6 +726,15 @@ document.addEventListener('click',async e=>{
   else if(a==='month'){ui.month=d.m;render()}
   else if(a==='newses'){ui.modal={t:'ses',pid:d.id||''};render()}
   else if(a==='opensess'){ui.modal={t:'ses',id:d.id};render()}
+  else if(a==='finpreset'){
+    const f=t.closest('form'),pr=PRESETS.find(x=>x.name===d.n);if(!f||!pr)return;
+    f.elements.name.value=pr.name;f.elements.notes.value=pr.nota;f.elements.ok.checked=false;
+    const det=f.elements.notes.closest('details');if(det)det.open=true;
+  }
+  else if(a==='askfin'){
+    const f=t.closest('form'),nom=(f&&f.elements.name.value.trim())||'la obra social',txt=preguntasFin(nom);
+    try{await navigator.clipboard.writeText(txt);toast('Preguntas copiadas: pegalas en un mail o WhatsApp a Prestadores')}catch(_){prompt('Copiá las preguntas:',txt)}
+  }
   else if(a==='cal'){ui.cal=ui.cal==='mes'?'sem':'mes';render()}
   else if(a==='mon'){ui.date=addMonths(ui.date,+d.n);render()}
   else if(a==='openrep'){ui.rep={age:0,min:0,fid:'',norem:false,sort:'monto',tone:'auto'};render();scrollTo(0,0)}
@@ -844,6 +870,11 @@ document.addEventListener('change',async e=>{
   }
   else if(c==='pickfin'){
     const f=t.form;
+    if(t.value.startsWith('__p')){
+      const pr=PRESETS[+t.value.slice(3)],draft=Object.fromEntries(new FormData(f));
+      const nf=presetFin(pr,draft.osFee,draft.fee);S.fin.push(nf);await save();draft.fid=nf.id;
+      ui.modal={t:'pat',id:f.dataset.id||'',draft};render();toast(`${pr.name} agregada: falta confirmar sus requisitos`);return;
+    }
     if(t.value==='__new'){
       const name=(prompt('Nombre de la obra social o prepaga')||'').trim();
       const draft=Object.fromEntries(new FormData(f));
@@ -909,7 +940,7 @@ document.addEventListener('submit',async e=>{
     ui.modal=null;await go();
   }
   else if(k==='fin'){
-    const rec={name:v.name.trim(),fee:+v.fee||0,copago:+v.copago||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim(),pFormato:v.pFormato||'paciente',pHora:v.pHora==='on',pDni:v.pDni==='on',pAuth:v.pAuth==='on',pCodigo:v.pCodigo==='on',modeloUrl:(v.modeloUrl||'').trim()};
+    const rec={name:v.name.trim(),fee:+v.fee||0,copago:+v.copago||0,codigo:(v.codigo||'').trim(),diaLimite:v.diaLimite?Math.min(28,Math.max(1,+v.diaLimite)):'',plazoPago:+v.plazoPago||0,reqAuth:v.reqAuth==='on',notes:(v.notes||'').trim(),pFormato:v.pFormato||'paciente',pHora:v.pHora==='on',pDni:v.pDni==='on',pAuth:v.pAuth==='on',pCodigo:v.pCodigo==='on',modeloUrl:(v.modeloUrl||'').trim(),ok:v.ok==='on'};
     learn(rec.fee,rec.copago);
     if(f.dataset.id)Object.assign(fin(f.dataset.id),rec);else S.fin.push({id:uid(),...rec});
     ui.modal=null;await go();

@@ -83,7 +83,18 @@ Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://loc
 
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v7` → `consultorio-v8`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v8` → `consultorio-v9`).
+
+## Prepagas precargadas: qué se sabe y qué no
+
+OSDE, Swiss Medical, Galeno, SanCor Salud y Medicus están como atajos ("Cargar rápido" al crear una obra social, o "Agregar con un toque" al cargar un paciente). **Solo precargan el nombre y una nota:** busqué en internet el instructivo de facturación para psicólogos de cada una y no encontré ninguno público, así que la app no inventa reglas. Lo poco que sí hay:
+
+- **OSDE:** sistema de turnos para profesionales de salud mental que valida el nº de afiliado.
+- **Swiss Medical:** portal de prestadores con usuario y contraseña; las autorizaciones se tramitan en "Trámite Centro de Atención Prestadores".
+- **SanCor Salud:** "Gestión de Autorización y Facturación online" desde su sitio Autogestión (según el manual de un colegio profesional, no de psicología).
+- **Galeno y Medicus:** nada público encontrado.
+
+Cada una queda marcada como **"Requisitos sin confirmar"** hasta que completes valor, tope, autorización y fecha límite. En Editar, el botón **"Copiar las preguntas"** arma el mensaje para pedirle a Prestadores lo que hace falta: autorización, sesiones reconocidas, valor y copago, fecha límite y canal de presentación, planilla, factura y plazo de pago. Una resolución del Ministerio de Salud sobre prestaciones de psicología menciona topes de sesiones y firmas en la facturación, pero hay que verificar que cada prepaga la aplique.
 
 ## Planilla de asistencia: qué exigen
 
@@ -101,7 +112,7 @@ El formato **cambia según la obra social** y en la mayoría **es obligatoria**.
 
 Ideas a futuro, por prioridad:
 
-1. Modelos de planilla ya cargados de las obras sociales más usadas (hoy es un formato genérico configurable).
+1. Cargar los requisitos reales de cada prepaga a medida que se confirmen, y sus modelos de planilla (hoy es un formato genérico configurable).
 2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
 3. Recibos en PDF y exportar todo a Excel.
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
