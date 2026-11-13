@@ -9,6 +9,7 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
 
 - **Hoy:** la semana siempre a la vista. Una tira de lunes a domingo muestra con puntos qué días tienen turnos; se toca un día, se desliza a los costados para pasar de día o se usan las flechas para cambiar de semana. Un toque en el círculo marca que asistió, y si el paciente debe plata aparece **Cobrar $X** en la misma fila: registra el cobro con el último medio usado y se puede deshacer. Tocar el turno abre la hoja para cambiar estado, fecha, hora, valor y autorización, recordar por WhatsApp o borrarlo.
+- **Vista de mes:** con "Ver mes" el calendario muestra cada día con un punto por turno: asistió, programado, sin cerrar, canceló, faltó. Al pie, el resumen del mes. Tocar un día muestra sus turnos abajo.
 - **Repetir sin esfuerzo:**
   - Al crear un turno se elige el paciente con un botón (aparecen los que más atendés) y la repetición con un combo: cada semana o cada 2 semanas, con distintas cantidades. Recuerda la última que usó cada paciente.
   - **Por renovar:** cuando una serie está por terminar o terminó hace poco, aparece un aviso con el botón **Renovar 4**, que agenda cuatro turnos más con el mismo horario y valores.
@@ -17,11 +18,13 @@ Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
   - Casi todo lo que agenda avisa con "Deshacer" por unos segundos. Se pueden borrar de a uno o con todos los siguientes. Los turnos pasados sin cerrar se marcan y se avisa.
 - **Pacientes:** buscador (nombre, obra social, teléfono), saldo, historial de sesiones y cobros, aviso de deuda por WhatsApp. Se pueden archivar: se ocultan de las listas y de los turnos nuevos, pero conservan historial y deuda.
 - **Plata:** cobrado, facturado, proyectado y deuda de pacientes del mes, y el estado de cada obra social.
+- **Reporte de deudas:** en Plata → "Reporte y reclamos". Filtra por antigüedad (+15, +30, +60, +90 días), monto mínimo, obra social o particulares, y oculta a quienes ya avisaste en la última semana. Los pagos se aplican a las sesiones más viejas primero, así que muestra desde cuándo debe cada uno. Cada fila arma un mensaje con el detalle de las sesiones pendientes y tu alias, en tres tonos (amable, recordatorio y formal con oferta de cuotas) que se eligen solos según la antigüedad o a mano. Registra cuándo y cuántas veces avisaste. Se puede copiar el mensaje y descargar la lista en CSV.
 - **Obras sociales y prepagas** (lo que más cambió):
   - Cada una tiene valor por sesión, código de práctica, día límite de presentación, plazo de pago y si exige autorización.
   - Cada paciente tiene su obra social, nº de afiliado, lo que paga la obra social, el copago propio y un tope de sesiones por mes.
   - Cada sesión asistida se sigue como **sin presentar → presentada → cobrada**, o **débito**.
   - Antes de presentar avisa de autorizaciones faltantes, afiliados sin número, sesiones que pasan el tope y el vencimiento del mes.
+  - Genera la **planilla de asistencia para firmar** (imprimir o guardar como PDF) con tus datos, el afiliado, las fechas y las firmas, en una hoja por paciente o en un listado del mes. Las columnas se configuran por obra social, y se puede guardar el link al modelo oficial si exigen el suyo.
   - Descarga la planilla del mes en CSV (se abre en Excel), marca como presentado o cobrado, controla cuántos días pasaron desde la presentación y arma el texto del reclamo de un débito.
 - **Poco tipeo:**
   - **Montos como botones:** los montos que usás (valor de sesión, lo que paga la obra social, copagos) se aprenden solos y aparecen como botones en pacientes, turnos y cobros. Un toque los carga, y el campo para escribir otro queda debajo. En Ajustes se pueden quitar o agregar.
@@ -80,12 +83,15 @@ Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://loc
 
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v6` → `consultorio-v7`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v7` → `consultorio-v8`).
+
+## Planilla de asistencia: qué exigen
+
+El formato **cambia según la obra social** y en la mayoría **es obligatoria**. Según instructivos públicos: IOMA pide la planilla diaria con firma del profesional y del afiliado (y hay que cargar la firmada en la facturación digital); OSPACA no autoriza facturas sin su planilla de asistencia, con sus propios modelos; IAPOS tiene planillas por módulo con fecha, firma y sello, firma del afiliado, aclaración y DNI; OSIAD pide una constancia mensual antes del día 10; y el marco nacional de salud mental prevé una planilla inicial y una de evolución mensual. No hay un formato único, así que la planilla de la app es genérica y configurable, y conviene verificar el modelo vigente en el instructivo de cada obra social.
 
 ## Limitaciones conocidas
 
-- La app no emite facturas electrónicas ni se conecta a los portales de las obras sociales: prepara la planilla y el control, y la presentación se hace por el canal de cada una.
-- No imprime ni arma la planilla de asistencia para firmar.
+- La planilla de la app es genérica: si una obra social exige su modelo exacto, hay que usar el suyo. La app tampoco emite facturas electrónicas ni se conecta a sus portales: prepara la planilla y el control, y la presentación se hace por el canal de cada una.
 - Cuando se edita un turno de una serie, el cambio a los siguientes se aplica solo si se confirma.
 - Eliminar un paciente borra también sus sesiones y cobros: para conservar el historial conviene archivarlo.
 - Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
@@ -95,9 +101,9 @@ Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa 
 
 Ideas a futuro, por prioridad:
 
-1. Planilla de asistencia para firmar y PDF por obra social con el formato que pida cada una.
+1. Modelos de planilla ya cargados de las obras sociales más usadas (hoy es un formato genérico configurable).
 2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
 3. Recibos en PDF y exportar todo a Excel.
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
-5. Vista de mes completo para ver la carga de turnos de un vistazo.
+5. Planilla de evolución mensual y planilla inicial de tratamiento.
 6. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
