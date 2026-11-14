@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consultorio · generar códigos de aporte</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;max-width:560px;margin:24px auto;padding:0 18px;color:#1b2420;background:#fbf9f4}
+input,textarea,button{font:inherit;width:100%;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;margin:6px 0}
+button{background:#2b6b57;color:#fff;border:0;font-weight:600;cursor:pointer}button.sec{background:#e6efeb;color:#2b6b57}
+label{font-size:.85rem;color:#6d756f;display:block;margin-top:12px}.ok{color:#2b6b57}.bad{color:#b83a3a}.box{background:#fff;border:1px solid #ebe7dd;border-radius:14px;padding:14px;margin:14px 0}</style></head>
+<body>
+<h1>Códigos de aporte</h1>
+<p>Herramienta privada del desarrollador. Genera el código que desactiva el pedido de aporte en la app de quien colaboró. Funciona sin internet y no envía nada a ningún lado.</p>
+<div class="box"><b>1. Clave privada</b>
+<p id="kst" class="bad">No hay clave cargada.</p>
+<input type="file" id="kf" accept=".json">
+<label><input type="checkbox" id="rem" style="width:auto"> Recordarla en este navegador (solo en tu computadora personal)</label>
+<button class="sec" id="forget" type="button">Olvidar la clave guardada</button></div>
+<div class="box"><b>2. Datos del aporte</b>
+<label>Nombre o email de quien aportó</label><input id="n" placeholder="Lic. Ana Pérez">
+<button id="gen">Generar código</button>
+<label>Código</label><textarea id="out" rows="5" readonly></textarea>
+<button class="sec" id="copy" type="button">Copiar mensaje para enviar</button></div>
+<script>
+'use strict';
+let KEY=null;const $=i=>document.getElementById(i);
+const b64u=u=>btoa(String.fromCharCode(...u)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+async function load(txt,store){
+  try{const o=JSON.parse(txt);KEY=await crypto.subtle.importKey('jwk',o.jwk||o,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+    $('kst').textContent='Clave cargada.';$('kst').className='ok';if(store)localStorage.setItem('cx_priv',txt)}
+  catch(e){KEY=null;$('kst').textContent='El archivo no es una clave válida.';$('kst').className='bad'}
+}
+$('kf').onchange=async e=>{if(e.target.files[0])load(await e.target.files[0].text(),$('rem').checked)};
+$('forget').onclick=()=>{localStorage.removeItem('cx_priv');KEY=null;$('kst').textContent='No hay clave cargada.';$('kst').className='bad'};
+if(localStorage.getItem('cx_priv'))load(localStorage.getItem('cx_priv'));
+$('gen').onclick=async()=>{
+  if(!KEY){alert('Primero cargá la clave privada.');return}
+  const n=$('n').value.trim();if(!n){alert('Poné el nombre o email.');return}
+  const d=new Date(),data=new TextEncoder().encode(JSON.stringify({n,d:d.toISOString().slice(0,10),t:'don'}));
+  const sig=new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},KEY,data));
+  $('out').value='CX1.'+b64u(data)+'.'+b64u(sig);
+};
+$('copy').onclick=async()=>{
+  if(!$('out').value)return;
+  const msg='¡Gracias por tu aporte a Consultorio! Para que la app no te lo vuelva a pedir, entrá a Panel → Apoyar Consultorio y pegá este código:\n\n'+$('out').value;
+  try{await navigator.clipboard.writeText(msg);$('copy').textContent='Copiado'}catch(_){prompt('Copiá:',msg)}
+};
+</script></body></html>

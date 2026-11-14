@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#fbf9f4">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -975,5 +976,13 @@ document.addEventListener('visibilitychange',()=>{
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();
 </script>
+<script src="modules/kernel.js"></script>
+<script src="modules/panel.js"></script>
+<script src="modules/hc.js"></script>
+<script src="modules/plata.js"></script>
+<script src="modules/agenda.js"></script>
+<script src="modules/legal.js"></script>
+<script src="modules/don.js"></script>
+<script src="modules/nube.js"></script>
 </body>
 </html>

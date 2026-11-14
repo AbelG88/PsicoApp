@@ -1,5 +1,6 @@
-const C = 'consultorio-v8';
-const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
+const C = 'consultorio-v9';
+const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png',
+  './modules/kernel.js', './modules/panel.js', './modules/hc.js', './modules/plata.js', './modules/agenda.js', './modules/legal.js', './modules/don.js', './modules/nube.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(C).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
