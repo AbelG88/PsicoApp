@@ -3,7 +3,7 @@
    aumento de aranceles, copia de seguridad y registro de actividad. */
 CX.advance=function(){
   CX.ui.gate=null;
-  for(const m of CX.order.map(i=>CX.mods[i])){const g=m.gate&&m.gate();if(g){CX.ui.gate=g;break}}
+  for(const m of ['legal',...CX.order.filter(i=>i!=='legal')].map(i=>CX.mods[i])){const g=m&&m.gate&&m.gate();if(g){CX.ui.gate=g;break}}
   render();
   if(!CX.ui.gate)CX.emit('ready');
 };
@@ -167,7 +167,8 @@ CX.def('panel',{
 /* valores iniciales según la profesión */
 CX.seed=function(force){
   const p=CX.prof();
-  if(!S.x.srv.length){const base=topMontos(1)[0]||0;S.x.srv=p.srv.map(([name,dur])=>({id:uid(),name,dur,fee:base}))}
+  if(!S.x.srv.length){const cnt={};for(const q of S.patients)if(!q.archived&&+q.fee>0)cnt[q.fee]=(cnt[q.fee]||0)+1;
+    const base=+(Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0]||[0])[0]||0;S.x.srv=p.srv.map(([name,dur])=>({id:uid(),name,dur,fee:base}))}
   const hc=CX.cfg('hc');
   if(force||!hc.secs){hc.secs=[...p.secs];hc.phr=[...p.phr]}
 };

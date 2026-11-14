@@ -131,7 +131,7 @@ CX.cols=()=>[['patients',S.patients],['sessions',S.sessions],['payments',S.payme
 const cxJson=o=>{const t=o._t;delete o._t;const j=JSON.stringify(o);if(t!==undefined)o._t=t;return j};
 CX.restJson=()=>{const x=S.x,keep={};for(const k in x)if(!['inv','exp','srv','tomb','log','rt'].includes(k))keep[k]=x[k];return JSON.stringify([S.settings,keep])};
 CX.snapshot=function(){
-  const snap={cols:{},rest:CX.restJson()};
+  const snap={cols:{},rest:CX.restJson(),salt:SALT?b64(SALT):''};
   for(const [k,arr] of CX.cols()){const m=snap.cols[k]=new Map();for(const o of arr)m.set(o.id,cxJson(o))}
   CX.snap=snap;
 };
@@ -153,6 +153,9 @@ CX.stamp=function(){
   CX.stash.ses=null;
   const rest=CX.restJson();
   if(rest!==CX.snap.rest){CX.snap.rest=rest;S.x.rt=now;ch=true}
+  const salt=SALT?b64(SALT):'';
+  if(CX.snap.salt!==undefined&&CX.snap.salt!==salt)ch=true; /* cambió la clave */
+  CX.snap.salt=salt;
   if(ch)CX.touch();
   return ch;
 };

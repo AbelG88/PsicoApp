@@ -4,6 +4,19 @@ App para el consultorio: turnos, cobros y deudas. Funciona en el celular, sin in
 
 **Usarla:** https://abelg88.github.io/PsicoApp/
 
+## Versión 2: una suite por módulos
+
+La app sigue siendo la misma de tres pestañas, y ahora suma módulos que se prenden y apagan desde **Panel** (el engranaje):
+
+- **Se adapta a la profesión.** Al empezar se elige entre psicología, psiquiatría, medicina, fonoaudiología, kinesiología, nutrición, terapia ocupacional, psicopedagogía u otra. Cambian las secciones de la historia clínica, las frases frecuentes, las prestaciones y hasta el vocabulario ("sesión" o "consulta").
+- **Historia clínica de carga rápida.** Desde Hoy, cada turno atendido tiene un botón **+ Nota**: se abre el cuadro listo para escribir o dictar, con frases frecuentes a un toque, "Copiar la anterior" y la nota previa a la vista. Se guarda sola. Cada nota se puede corregir 24 horas; después queda firmada con una huella encadenada y solo admite aclaraciones. Incluye ficha del paciente, consentimientos informados para imprimir, constancia de asistencia y la copia completa para entregar al paciente.
+- **Facturación y reportes.** Factura asistida para ARCA (prepara los datos, se emite en ARCA y se guarda número y CAE), control del tope anual, recibos, gastos del consultorio, reportes por año y exportación a Excel. Ver `docs/FACTURA-ELECTRONICA.md`.
+- **Panel de control.** Datos del consultorio, prestaciones con duración y valor, **aumento de aranceles por porcentaje** (con deshacer), obras sociales, montos y módulos.
+- **Agenda avanzada.** Recordatorios en tanda por WhatsApp para el día siguiente, prestaciones como botones al agendar, aviso de turnos superpuestos, videollamada por paciente y cancelación por vacaciones.
+- **Dos modos.** Sin conexión (todo cifrado en el dispositivo, con copia de seguridad que ahora incluye la historia clínica) y **online** (cuenta de Google, Facebook o email, con los datos cifrados en una base de datos y sincronizados entre dispositivos). Ver `docs/MODO-ONLINE.md`.
+- **Legales y privacidad.** Términos y política de privacidad con aceptación, guía de cumplimiento (Ley 26.529 y Ley 25.326), aviso de privacidad para pacientes, entrega de datos a pedido del paciente, registro de actividad y borrado total.
+- **Aportes.** Cada 30 días la app invita a colaborar. Se desactiva con un código firmado que se genera con `tools/codigos.html` y la clave privada del desarrollador (que no está en el repositorio).
+
 ## Qué hace
 
 Tres pestañas (**Hoy**, **Pacientes**, **Plata**) y un engranaje de Ajustes.
@@ -66,7 +79,7 @@ Antes de usarlo con una obra social conviene confirmar sus fechas y formatos en 
 - El teléfono se normaliza para el link de WhatsApp: acepta `11 2345 6789`, `011 15 2345 6789`, `+54 9 11 2345 6789` y similares (Argentina). Un celular sin código de área no genera link. Números de otros países se usan tal cual, con código de país.
 - **No hay recuperación de clave.** Si se olvida, los datos no se pueden abrir.
 - **Si se borran los datos del navegador o se pierde el celular, se pierde todo.** Descargar una copia de seguridad seguido (Ajustes → Descargar copia) y guardarla en Drive o enviarla por mail. El archivo está cifrado con la clave que tenía al momento de descargarlo.
-- Las notas del paciente son para datos administrativos. No cargar información clínica.
+- Las notas del paciente son para datos administrativos. La información clínica va en la Historia clínica, que se guarda aparte, cifrada registro por registro.
 
 ## Para desarrollo
 
@@ -78,12 +91,19 @@ Es una PWA estática: HTML, CSS y JavaScript sin dependencias ni paso de build.
 | `sw.js` | Service worker (funcionamiento sin internet) |
 | `manifest.webmanifest` | Datos para instalarla como app |
 | `icon.svg`, `icon-192.png`, `icon-512.png` | Íconos |
+| `modules/kernel.js` | Núcleo de módulos: registro, profesiones, bóveda cifrada (IndexedDB), páginas y copia completa |
+| `modules/panel.js`, `hc.js`, `plata.js`, `agenda.js`, `legal.js`, `don.js`, `nube.js` | Un archivo por módulo |
+| `vendor/supabase.js` | Cliente de Supabase (licencia MIT), solo se carga en modo online |
+| `tools/codigos.html` | Generador de códigos de aporte (pide la clave privada) |
+| `supabase/schema.sql`, `docs/`, `tests/` | Esquema de la base, guías y pruebas de punta a punta |
 
 Para probar en local: `python3 -m http.server` en la carpeta y abrir `http://localhost:8000`.
 
+Los módulos extienden `index.html` sin tocarlo: envuelven `render`, `save`, `unlock` y `lock`, escuchan sus propias acciones (`data-act="x:módulo:acción"`) y agregan sus filas a las pantallas después de dibujarlas. Los datos livianos de los módulos viven en `S.x`; la historia clínica, en IndexedDB (`consultorio_vault`), cifrada con una clave propia guardada dentro de `S.x`.
+
 Datos: todo vive en un único objeto `{patients, sessions, payments, settings}` que se cifra completo y se guarda en `localStorage` (clave `consultorio_v1`, formato `v:1`). La copia de seguridad es ese mismo contenido descargado como `.json`.
 
-Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v8` → `consultorio-v9`).
+Para publicar cambios: subir a `main`. GitHub Pages sirve desde la raíz de esa rama. Si se cambia algo que debe verse al instante, subir también el número de versión de la caché en `sw.js` (`consultorio-v10` → `consultorio-v10`).
 
 ## Prepagas precargadas: qué se sabe y qué no
 
@@ -105,7 +125,9 @@ El formato **cambia según la obra social** y en la mayoría **es obligatoria**.
 - La planilla de la app es genérica: si una obra social exige su modelo exacto, hay que usar el suyo. La app tampoco emite facturas electrónicas ni se conecta a sus portales: prepara la planilla y el control, y la presentación se hace por el canal de cada una.
 - Cuando se edita un turno de una serie, el cambio a los siguientes se aplica solo si se confirma.
 - Eliminar un paciente borra también sus sesiones y cobros: para conservar el historial conviene archivarlo.
-- Los datos están en un solo dispositivo: no hay sincronización ni uso en dos teléfonos.
+- Sin el modo online, los datos están en un solo dispositivo. Con el modo online se sincronizan, pero sigue sin haber recuperación de clave.
+- La historia clínica usa firma electrónica (clave y huella de control), no firma digital con certificado.
+- Los textos legales se redactaron sin un estudio jurídico: conviene hacerlos revisar antes de vender la app.
 - Después de publicar una versión nueva, el celular puede mostrar la anterior hasta abrir la app una segunda vez (cache primero).
 
 ## Pendiente
@@ -114,7 +136,6 @@ Ideas a futuro, por prioridad:
 
 1. Cargar los requisitos reales de cada prepaga a medida que se confirmen, y sus modelos de planilla (hoy es un formato genérico configurable).
 2. Aviso de "hay una versión nueva" y validación más estricta al restaurar una copia.
-3. Recibos en PDF y exportar todo a Excel.
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
 5. Planilla de evolución mensual y planilla inicial de tratamiento.
-6. Historia clínica (requiere pensar bien privacidad y cifrado antes de sumarla).
+6. Emisión real de facturas, adjuntos en la historia clínica, turnos online para pacientes y recuperación de clave.

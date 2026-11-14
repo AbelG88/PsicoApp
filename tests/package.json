@@ -1,0 +1,1 @@
+{"name":"consultorio-tests","private":true,"description":"Pruebas de punta a punta en Chrome sin interfaz","scripts":{"offline":"node offline.js","migracion":"node migracion.js","online":"CX_NET=1 node online.js"},"dependencies":{"puppeteer-core":"^23.0.0"}}

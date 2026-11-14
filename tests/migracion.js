@@ -1,0 +1,38 @@
+const L=require('./lib'),fs=require('fs');
+(async()=>{
+const srv=await L.serve(8126),b=await L.launch(),errs=[];const p=await L.page(b,errs);
+const ok=(c,m)=>{console.log((c?'  ok  ':'  FAIL ')+m);if(!c)process.exitCode=1};
+// versión anterior: index.html sin módulos
+const old=require('child_process').execSync('git -C '+JSON.stringify(require('path').join(__dirname,'..'))+' show a47819e:index.html').toString();
+await p.setRequestInterception(true);let legacy=true;
+p.on('request',r=>{const u=r.url();if(legacy&&u.endsWith(':8126/'))r.respond({status:200,contentType:'text/html',body:old});else r.continue()});
+await p.goto('http://localhost:8126/');await L.sleep(400);
+await p.evaluate(()=>{document.querySelector('input[name=p]').value='vieja-clave';document.querySelector('input[name=p2]').value='vieja-clave';document.querySelector('form').requestSubmit()});await L.sleep(1000);
+await p.evaluate(async()=>{S.fin.push({id:'f1',name:'OSDE',fee:9000,copago:0,codigo:'',diaLimite:10,plazoPago:60,reqAuth:true,notes:''});S.patients.push({id:'p1',name:'Paciente Viejo',phone:'1123456789',fee:20000,notes:'',fid:'f1',osFee:9000,afil:'123',dni:'30111222',tope:4});
+ S.sessions.push({id:'s1',pid:'p1',date:addDays(today(),-40),time:'09:00',status:'asistio',fee:20000,fid:'f1',osAmt:9000,osSt:'cobr',cobFecha:addDays(today(),-5),presFecha:addDays(today(),-30),auth:'A1'});
+ S.payments.push({id:'y1',pid:'p1',date:addDays(today(),-40),amount:20000,method:'Efectivo',note:''});await save()});
+const raw=await p.evaluate(()=>localStorage.getItem('consultorio_v1'));
+ok(JSON.parse(raw).z===undefined,'datos creados con la versión anterior (sin compresión, sin módulos)');
+legacy=false;await p.reload();await L.sleep(600);
+await p.evaluate(()=>{document.querySelector('input[name=p]').value='vieja-clave';document.querySelector('form').requestSubmit()});await L.sleep(1300);
+const t=()=>p.evaluate(()=>document.getElementById('app').innerText.toLowerCase());
+ok((await t()).includes('antes de seguir'),'usuario existente: primero acepta términos');
+await p.evaluate(()=>document.querySelector('[data-act="x:legal:aceptar"]').click());await L.sleep(500);
+ok((await t()).includes('armemos tu consultorio'),'después elige profesión');
+await p.evaluate(()=>document.querySelector('form[data-form="x:panel:inicio"]').requestSubmit());await L.sleep(700);
+ok(await p.evaluate(()=>S.patients[0].name==='Paciente Viejo'&&S.sessions.length===1&&S.payments.length===1&&S.fin.length===1&&balance('p1')===0&&S.x.srv[0].fee===20000),'datos intactos; prestaciones toman el valor habitual');
+ok(JSON.parse(await p.evaluate(()=>localStorage.getItem('consultorio_v1'))).z===1,'ahora guarda comprimido');
+await p.evaluate(()=>{ui.tab='plata';render()});
+await p.evaluate(()=>CX.go('fac:home'));await L.sleep(300);
+ok((await t()).includes('osde')&&(await t()).includes('paciente viejo'),'por facturar: paciente y obra social');
+await p.evaluate(()=>CX.sheet('fac:nueva',{fid:'f1',ym:S.sessions[0].date.slice(0,7)}));await L.sleep(300);
+ok((await t()).includes('iva responsable inscripto')&&(await t()).includes('9000'),'factura a obra social preparada');
+await p.evaluate(()=>{CX.ui.modal=null;CX.ui.stack=[];lock()});await L.sleep(300);
+await p.screenshot({path:'n-lock.png'});
+await p.evaluate(()=>{localStorage.removeItem('consultorio_v1');render()});await L.sleep(200);
+await p.evaluate(()=>document.querySelector('[data-act="x:nube:login"]').click());await L.sleep(2500);
+await p.screenshot({path:'o-login.png'});
+ok((await t()).includes('recibir enlace por mail'),'pantalla inicial: entrar con cuenta');
+console.log(errs.length?'ERRORES:\n'+[...new Set(errs)].join('\n'):'sin errores de consola');
+await b.close();srv.close();
+})().catch(e=>{console.error(e);process.exit(1)});

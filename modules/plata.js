@@ -221,12 +221,12 @@ CX.def('fac',{
   forms:{
     async emitida(v,f){
       const e=f.querySelector('#facerr');
-      if(!v.num.trim()){e.textContent='Falta el número del comprobante.';return}
+      if(!v.num.replace(/\D/g,'')){e.textContent='Falta el número del comprobante.';return}
       if(v.cae&&!/^\d{14}$/.test(v.cae.trim())){e.textContent='El CAE tiene 14 dígitos.';return}
       await FAC.guardar(f,true);
     },
     async cfg(v){
-      const c=FAC.cfg();c.cond=v.cond;c.pv=v.pv.trim();c.desc=v.desc.trim();c.tope=+v.tope||0;S.settings.cuit=v.cuit.trim();
+      const c=FAC.cfg();c.cond=v.cond;c.pv=v.pv.replace(/\D/g,'');c.desc=v.desc.trim();c.tope=+v.tope||0;S.settings.cuit=v.cuit.trim();
       await save();CX.back();toast('Datos fiscales guardados');
     },
     async finx(v,f){S.x.finx[f.dataset.id]={razon:v.razon.trim(),cuit:v.cuit.trim(),iva:v.iva,dom:v.dom.trim()};CX.ui.modal=null;await go()},
@@ -253,7 +253,7 @@ CX.mods.fac.acts.gastos=()=>CX.go('fac:gastos',{m:ui.month});
 FAC.guardar=async function(f,emitida){
   const m=CX.ui.modal,v=Object.fromEntries(new FormData(f)),d=m.inv||FAC.draft(m);
   const tipo=FAC.tipo(d.iva);
-  const rec={...d,id:m.id||uid(),desc:v.desc.trim()||d.desc,tipo,pv:FAC.cfg().pv||'',num:v.num.trim(),cae:v.cae.trim(),caeV:v.caeV||'',date:v.date||today(),st:emitida?'ok':'pend'};
+  const rec={...d,id:m.id||uid(),desc:v.desc.trim()||d.desc,tipo,pv:FAC.cfg().pv||'',num:v.num.replace(/\D/g,''),cae:v.cae.replace(/\D/g,''),caeV:v.caeV||'',date:v.date||today(),st:emitida?'ok':'pend'};
   const i=S.x.inv.findIndex(x=>x.id===rec.id);if(i>=0)S.x.inv[i]=rec;else S.x.inv.push(rec);
   for(const x of S.payments)if((rec.payIds||[]).includes(x.id))x.inv=rec.id;
   for(const s of S.sessions)if((rec.sesIds||[]).includes(s.id))s.finv=rec.id;
