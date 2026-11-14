@@ -139,3 +139,7 @@ Ideas a futuro, por prioridad:
 4. Cargar topes y requisitos de las obras sociales más usadas ya preconfigurados.
 5. Planilla de evolución mensual y planilla inicial de tratamiento.
 6. Emisión real de facturas, adjuntos en la historia clínica, turnos online para pacientes y recuperación de clave.
+
+## Licencia
+
+Código abierto bajo licencia [MIT](LICENSE): podés usarlo, copiarlo y modificarlo libremente.
