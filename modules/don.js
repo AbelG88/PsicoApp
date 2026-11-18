@@ -22,7 +22,7 @@ const DON={
       return ok?JSON.parse(dec.decode(data)):null;
     }catch(_){return null}
   },
-  due(){const d=S.x.don;return !d.code&&S.patients.length>0&&daysBetween(d.last||d.first||today(),today())>=DON.DIAS},
+  due(){const d=S.x.don;if(typeof LIC!=='undefined')return false;return !d.code&&S.patients.length>0&&daysBetween(d.last||d.first||today(),today())>=DON.DIAS},
   links(){
     return [...new Set(DON.LINKS.map(x=>x.g))].map(g=>`<div class="sub" style="margin-top:12px">${g}</div><div class="grid2" style="margin-top:6px">${DON.LINKS.filter(x=>x.g===g).map(x=>`<a class="btn sec" target="_blank" rel="noopener" href="${x.u}">${x.l}</a>`).join('')}</div>`).join('');
   }
@@ -30,7 +30,7 @@ const DON={
 
 CX.def('don',{
   name:'Aportes',core:true,
-  panel:[{sec:'pie',head:'El proyecto',title:'Apoyar Consultorio',p:'don:home',sub:()=>S.x.don.code?'<span class="ok">Gracias por tu aporte</span>':'Es gratis y se sostiene con aportes voluntarios'}],
+  panel:[{sec:'pie',head:'El proyecto',title:'Apoyar Consultorio',p:'don:home',sub:()=>S.x.don.code?'<span class="ok">Gracias por tu aporte</span>':'Aportes voluntarios al proyecto'}],
   pages:{
     home:{view(){
       const d=S.x.don;

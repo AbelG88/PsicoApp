@@ -252,6 +252,8 @@ render=function(){
   }
 };
 CX.gates={};
+/* gancho de licencia: lic.js lo define; devuelve false para impedir cargar datos con la prueba vencida */
+CX.guard=null;
 
 /* ---------- eventos ---------- */
 CX.intercept={
@@ -287,6 +289,7 @@ document.addEventListener('submit',e=>{
   if(k.startsWith('x:')){
     e.preventDefault();e.stopPropagation();
     const name=k.slice(2),i=name.indexOf(':'),mod=CX.mods[name.slice(0,i)],fn=mod&&mod.forms&&mod.forms[name.slice(i+1)];
+    if(CX.guard&&CX.guard(name)===false)return;
     if(fn)Promise.resolve(fn(Object.fromEntries(new FormData(f)),f)).catch(err=>{console.error('[cx] form',name,err);toast('No se pudo guardar. Probá de nuevo.')});
     return;
   }
